@@ -186,12 +186,9 @@ class View extends PithyBase {
     */
     public function render($content="", $headers=array()) {
         
-        if( is_array($content) ){                        
+        if( is_array($content) ){
             $content = isset($content[0]) ? call_user_func_array(array($this, "fetch"), $content) : call_user_func(array($this, "fetch"), $content);   
         }
-    else{
-      $content = $this->fetch($content);
-    }
 
         if( !$this->render_before($content) )
             return; 
