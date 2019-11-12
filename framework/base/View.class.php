@@ -143,7 +143,7 @@ class View extends PithyBase {
 
         // 分析参数并给相关变量赋值
         $template = $this->template;  
-        $params = $this->router->params;           
+        $params = $this->router->params;
         if( !empty($arg1) && is_string($arg1) )
             $template = $arg1;                
         if( !empty($arg2) && is_string($arg2) )
@@ -157,7 +157,8 @@ class View extends PithyBase {
         
         // 获取最终模板路径                                   
         $filepath = $this->getPath($template);
-        Pithy::debug("模板路径", $filepath);
+        //Pithy::debug("模板路径：", $filepath);
+        //Pithy::debug("模板数据：", $params);        
 
         // 开始页面缓存
         ob_start();
@@ -307,26 +308,28 @@ class View extends PithyBase {
     * @return void
     +----------------------------------------------------------
     */
-    public function show($info, $status="") {  
+    public function show($var, $status="") {  
       
         // 临时关闭静态页面缓存
         Pithy::config("Output.Cache.Expires", 0);  
         
         // 1、直接跳转
         if( is_null($status) ){
-            $url = is_string($info) ? $info : $this->router->build($info);
-            echo "<script language='javascript'>self.location='$url';</script>";
+            $url = is_string($var) ? $var : $this->router->build($var);
+            Pithy::redirect($url);
             exit;
         }
 
         // 2、AJAX输出
         if( (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 'xmlhttprequest' == strtolower($_SERVER['HTTP_X_REQUESTED_WITH'])) || !empty($_REQUEST[Pithy::config('View.Ajax.Flag')]) ){
-            $this->ajax(array("msg"=>$info, "rtn"=>$status));
-            exit;    
+            $params = func_get_args();
+            $this->ajax($params);
+            exit;
         } 
 
         // 3、模板输出
-        echo $this->fetch(Pithy::config("View.Template.Message"), array("info"=>$info, "status"=>$status));
+        $params = is_array($var) ? array("data"=>$var, "status"=>$status) : array("info"=>$var, "status"=>$status);
+        echo $this->fetch(Pithy::config("View.Template.Message"), $params);
         exit;         
     }  
     

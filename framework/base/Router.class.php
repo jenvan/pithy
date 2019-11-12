@@ -54,16 +54,18 @@ class Router extends PithyBase {
         $this->_module = $arr["module"];
         $this->_action = $arr["action"]; 
         $this->_params = $arr["params"];
-    
-    Pithy::debug("路由", array(
-      "file" => $this->file,
-      "controller" => $this->controller,
-      "route" => $this->route,
-      "group" => $this->group,
-      "module" => $this->module,
-      "action" => $this->action,
-      "params" => $this->params,
-    ));
+        
+        /*
+        Pithy::debug("路由", array(
+            "file" => $this->file,
+            "controller" => $this->controller,
+            "route" => $this->route,
+            "group" => $this->group,
+            "module" => $this->module,
+            "action" => $this->action,
+            "params" => $this->params,
+        ));
+        */
     }
 
     public function getFile(){

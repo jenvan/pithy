@@ -24,9 +24,6 @@ define("PITHY_RANDOM", "R_".PITHY_TIME."_".mt_rand());
 // 定义运行模式： lite | extend | cli | mvc | rest
 defined("PITHY_MODE") || define("PITHY_MODE", "lite");
 
-// 定义调试状态
-defined("PITHY_DEBUG") || define("PITHY_DEBUG", false);
-
 // 定义系统相关常量
 define("IS_WIN", stristr(PHP_OS, "WIN") ? 1 : 0 );
 define("IS_CGI", substr(PHP_SAPI, 0, 3) == "cgi" ? 1 : 0 );
@@ -127,13 +124,18 @@ class Pithy{
         // 设置系统时区
         if( function_exists("date_default_timezone_set") )
             date_default_timezone_set( self::config("App.Timezone") );
+        
+        // 定义调试状态
+        defined("PITHY_DEBUG") || define("PITHY_DEBUG", self::config("App.Debug"));
 
         // 预定义常量
         $arr = self::config("App.Define");
         if( is_array($arr) && !empty($arr) ){
             foreach($arr as $k => $v )
                 defined($k) || define($k, $v);
-        }                                                                                                                                                                             
+        }
+        defined("PITHY_PATH_RUNTIME") || define("PITHY_PATH_RUNTIME", sys_get_temp_dir());
+        defined("PITHY_PATH_CONFIG") || define("PITHY_PATH_CONFIG", PITHY_APPLICATION."config".DIRECTORY_SEPARATOR);
 
         // 预加载类         
         $arr = self::config("App.Preload");
@@ -187,17 +189,7 @@ class Pithy{
         if( version_compare(PHP_VERSION, "5.0.0", "<") ){
             trigger_error("PHP version must >5.0 !", E_USER_ERROR);
         }
-
-        // 检查目录是否存在
-        $dirs = array("", "log", "temp", "data", "cache");
-        foreach( $dirs as $item ){
-            $dir = PITHY_PATH_RUNTIME.$item.DIRECTORY_SEPARATOR;
-            if( !is_dir($dir) ){
-                @mkdir($dir, 0777, true);
-                @chmod($dir, 0777);     
-            }     
-        }
-
+        
     }
 
     /**
@@ -495,20 +487,20 @@ class Pithy{
             $name = $param->getName();
             if( is_array($params) && isset($params[$name]) ){
                 if( $param->isArray() )
-                    $args[] = is_array($params[$name]) ? $params[$name] : array($params[$name]);
+                    $args[$name] = is_array($params[$name]) ? $params[$name] : array($params[$name]);
                 elseif( !is_array($params[$name]) )
-                    $args[] = $params[$name];
+                    $args[$name] = $params[$name];
                 else
                     trigger_error( get_class($object)."::{$methodName} : Getted paramters [{$name}] is error!", E_USER_ERROR );
             }
             elseif( $param->isDefaultValueAvailable() )
-                $args[] = $param->getDefaultValue();
+                $args[$name] = $param->getDefaultValue();
             else
                 trigger_error( get_class($object)."::{$methodName} : Getted paramters [{$name}] is missing!", E_USER_ERROR );
         }
         
-        if( !empty($vars) && is_array($vars) ){
-            $class = new ReflectionClass($object);
+        $class = new ReflectionClass($object);
+        if( !empty($vars) && is_array($vars) ){    
             foreach( $vars as $name => $value ){
                 if( $class->hasProperty($name) ){
                     $property = $class->getProperty($name);
@@ -520,6 +512,9 @@ class Pithy{
             }
             if( !empty($vars) )
                 trigger_error( get_class($object)." : Unknown property ".implode(', ',array_keys($vars))." !", E_USER_ERROR );    
+        }
+        if ($class->hasMethod("setParams")){
+            $object->setParams($args);
         }
         
         return $method->invokeArgs($object, $args);          
@@ -562,7 +557,7 @@ class Pithy{
             $data[$key] = $data[$key] + (int)$step;
     } 
 
-    // 变量输出
+    // 变量分解
     static public function dump(){
 
         $params = func_get_args();
@@ -601,29 +596,32 @@ class Pithy{
     } 
 
     // 调试
-    static public function debug($title=null, $value=null) {
+    static public function debug() {
         
         static $data = array();
+        $args = func_get_args();
+        if (empty($args))
+            return $data;
         
-        if( is_array($title) ){
-            $data = array_merge($data, $title);    
-        }                
-        elseif( !empty($title) && !is_null($value) ){
-            $data[$title] = $value;    
+        $str = "";
+        foreach ($args as $arg){
+            $str .= " ". print_r($arg, true);
         }
-        elseif( is_null($title) ){
-            $var = $data;
-            $data = array();
-            return $var;        
+        $data[] = $str;
+        
+        if (!Pithy::config("App.Debug"))
+            return;
+        
+        try {
+            $handle = stream_socket_client("udp://255.255.255.255:9527", $errno, $errstr);
+            fwrite($handle, "--------------------------------------------------------------------------------\n".$str);
+            fclose($handle);
         }
-        elseif( is_null($value) && isset($data[$title]) ){
-            return $data[$title];
-        }
-        return null;
+        catch(Exception $e){}
     } 
 
     // 跟踪
-    static public function trace($msg, $traces=array()){
+    static public function trace($msg="", $traces=array()){
 
         static $data = array();
         
@@ -685,10 +683,10 @@ class Pithy{
                 }                    
                 $msg .= ") ".PHP_EOL;
             }
-            $msg .=  (  IS_CLI ? "" : " ".PHP_EOL.date("Y-m-d H:i:s")." | ".$_SERVER["SERVER_ADDR"]." : ".$_SERVER["REMOTE_ADDR"] );            
+            $msg .=  (  IS_CLI ? "" : "@ ".date("Y-m-d H:i:s")." | ".$_SERVER["SERVER_ADDR"]." : ".$_SERVER["REMOTE_ADDR"] );
         }
 
-        $data[] = $msg;
+        $data[] = (strstr($msg,"\n") ? "\n" : "").$msg;
         count( $data ) <= 100 || array_slice($data, -100);
 
         return $msg;
@@ -725,7 +723,7 @@ class Pithy{
         $config = array(
             "type" => "FILE",         // 日志记录类型
             "level" => "INFO",        // 日志记录级别
-            "destination" => "common",// 日志记录位置  PITHY_PATH_RUNTIME/LOG/Ymd/common.log
+            "destination" => "common",// 日志记录位置  PITHY_PATH_RUNTIME/log/Ymd/common.log
             "extra" => "",            // 日志扩展信息（日志记录类型为 MAIL 和 TCP 时使用，参见 error_log 函数)
         ); 
 
@@ -746,7 +744,7 @@ class Pithy{
             $config = self::merge($config, $options);
 
         // 设置相关变量            
-        $folder = PITHY_PATH_RUNTIME."log".DIRECTORY_SEPARATOR.date('Ymd').DIRECTORY_SEPARATOR;   
+        $folder = PITHY_PATH_RUNTIME.DIRECTORY_SEPARATOR."log".DIRECTORY_SEPARATOR.date('Ymd').DIRECTORY_SEPARATOR;
         $now = date("Y-m-d H:i:s");
 
         // 最终的日志参数
@@ -1031,15 +1029,18 @@ class Pithy{
     static public function cache($key, $value=PITHY_RANDOM){
         
         // 缓存文件路径
-        $filename = self::config("App.Cache.Folder").DIRECTORY_SEPARATOR.self::config("App.Cache.Prefix").$key.".php";  
+        $folder = PITHY_PATH_RUNTIME.DIRECTORY_SEPARATOR."cache_".substr(md5(PITHY_APPLICATION), 8, 8);
+        $filename = $folder.DIRECTORY_SEPARATOR.$key.".php";  
         
         // 获取缓存（如果 $value 为默认值）
         if( PITHY_RANDOM === $value )
             return is_file($filename) ? @include($filename) : null ;
 
         // 设置缓存
-        if( !is_null($value) )             
+        if( !is_null($value) ){
+            @mkdir($folder, 0755, true);
             return @file_put_contents($filename, "<?php".PHP_EOL."return ".var_export($value, true).";".PHP_EOL."?>");
+        }
         
         // 删除缓存 
         return @unlink($filename);       
@@ -1207,10 +1208,12 @@ class Pithy{
             if( !headers_sent() )
                 header("Content-type: text/html; charset=utf-8");
 
-            $msg = "<B style='color:#F33;'>".preg_replace("/".PHP_EOL."/", "</B><pre>", $msg, 1)."</pre>";
+            $dbg = self::debug();
+            $msg = preg_replace("/".PHP_EOL."(#|@)/", PHP_EOL."<b style='color:#33F;'>$1</b>", $msg);
+            $msg = "<b style='color:#F33;'>".preg_replace("/".PHP_EOL."/", "</b><pre>", $msg, 1)."</pre>";
             $msg = strstr($msg, "<pre>") <> "" ? $msg : "<pre>".$msg."</pre>";                
-            $msg = count(self::debug()) == 0 ? $msg : $msg."<hr><pre>".print_r(self::debug(), true)."</pre>";
-            $msg = "<div style='position:absolute;bottom:0px;right:0px;width:600px;height:400px;padding:10px;background:#FFFFCC;border:solid 1px #CCCCFF;color:#333333;font-size:12px;line-height:21px;overflow:auto;'>".$msg."</div>";  
+            $msg = count($dbg) == 0 ? $msg : $msg."-------------------------------<pre>".print_r($dbg, true)."</pre>";
+            $msg = "<div style='position:fixed;top:10%;left:10%;width:78%;height:78%;padding:1%;background:#000;border-radius:10px;color:#999;font-size:14px;line-height:24px;opacity:0.8;overflow:auto;'>".$msg."</div>";  
         }
         
         if( IS_CLI && IS_WIN )

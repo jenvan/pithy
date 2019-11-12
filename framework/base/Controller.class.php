@@ -33,9 +33,12 @@ class Controller extends PithyBase {
     
     // 模板布局
     public $layout = "";  
-         
+    
     // 模板文件
     public $template = "";
+    
+    // 动作参数
+    private $_params = null;
     
     /**
      +----------------------------------------------------------
@@ -60,17 +63,14 @@ class Controller extends PithyBase {
         
         // 条件跳转
         if( is_object($this->view) && method_exists($this->view, "show") && in_array($method, array('show', 'redirect', 'goto', 'info', 'message', 'msg', 'succeed', 'failed', 'success', 'failure', 'ok', 'canel', 'error')) ){
-            $info = $params[0];
-            if( $method == "show" ){
-                $status = isset($params[1]) ? intval($params[1]) : 0;
-            }
-            elseif( in_array($method, array('redirect', 'goto')) ){
+            $var = $params[0];
+            if( in_array($method, array('redirect', 'goto')) ){
                 $status = null;                               
             }
             else{
-                $status = in_array($method, array('info', 'message', 'msg')) ? "" : in_array($method, array('succeed', 'success', 'ok')) ? 0 : 1;                
+                $status = in_array($method, array('show', 'info', 'message', 'msg')) ? (isset($params[1]) ? trim($params[1]) : "") : (in_array($method, array('succeed', 'success', 'ok')) ? 0 : 1);                
             }
-            return $this->view->show($info, $status);                   
+            return $this->view->show($var, $status);
         }
         
         // 视图类其他方法                
@@ -177,8 +177,9 @@ class Controller extends PithyBase {
         if( !is_null($params) && !is_array($params) )
             $enable = (bool) $params;              
 
-        Pithy::debug("action", $action);
-        Pithy::debug("params", json_encode($params));
+        //Pithy::debug("动作", $action);
+        //Pithy::debug("用户参数", $params);
+        //Pithy::debug("合成参数", $this->params);
 
         // 过滤(判断 action 是否符合条件)
         $filters = $this->filters();
@@ -313,23 +314,29 @@ class Controller extends PithyBase {
         self::factory($arr["controller"])->run($arr["action"], $params, false); 
     }
   
-  /**
+    /**
      * 获取路由参数
      * 
      */
-  function getRouter(){
-    return $this->router;
-  }
-  function getGroup(){
-    return $this->router->group;
-  }
-  function getModule(){
-    return $this->router->module;
-  }
-  function getAction(){
-    return $this->router->action;
-  }
-    
+    function getRouter(){
+        return $this->router;
+    }
+    function getGroup(){
+        return $this->router->group;
+    }
+    function getModule(){
+        return $this->router->module;
+    }
+    function getAction(){
+        return $this->router->action;
+    }
+  
+    function getParams(){
+        return is_array($this->_params) ? $this->_params : array();
+    }
+    function setParams($params){
+        $this->_params = Pithy::merge($this->router->params, $params);
+    }
 
     /**
      * 定义外部动作集合

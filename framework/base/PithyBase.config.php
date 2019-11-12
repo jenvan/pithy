@@ -83,18 +83,16 @@ return array(
         "Replace" => array(            
             "__POWERED__" => "<a class='pithy_powered' href='http://pithy.cn' target='_blank'>Powered By Pithy</a>",    
             "__VERSION__" => PITHY_VERSION,    
-        ),       
-
-        // Runtime
-        "Runtime" => array(
-            "Enable" => false,                // 是否显示 runtime 变量
-        
         ),
         
         // Debug
         "Debug" => array(
-            "Enable" => true,                // 是否显示 Debug 变量跟踪
-            "Append" => array(               // 需要增加的其他 Debug 变量
+            "Enable" => false,                  // 是否允许显示调试信息（总开关）
+            "Trace"=> true,                     // 是否显示 trace 变量
+            "Runtime"=> true,                   // 是否显示 runtime 变量
+            "Benchmark"=> true,                 // 是否显示 benchmark 变量
+            "Log"=> true,                       // 是否显示 log 变量
+            "Append" => array(                  // 需要增加的其他变量
         
             ),
         ),
@@ -108,7 +106,7 @@ return array(
     'Controller'=>array( 
         
         // 动态绑定
-        "~~~Bind" => array(
+        "Bind" => array(
             "name" => array(
                 "class" => "~.bind.ControllerExt",
                 "params" => array(

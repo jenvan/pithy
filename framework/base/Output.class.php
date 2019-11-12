@@ -164,7 +164,7 @@ class Output extends PithyBase {
 
         $folder = Pithy::config("Output.Cache.Folder");
         $folder = empty($folder) ? "html" : $folder;
-        $folder = PITHY_PATH_RUNTIME."cache".DIRECTORY_SEPARATOR.$folder.DIRECTORY_SEPARATOR.$group.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR;
+        $folder = PITHY_PATH_RUNTIME.$folder.DIRECTORY_SEPARATOR.$group.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR;
 
         if( is_array($ignore) && !empty($ignore) && is_array($params) && !empty($params)){
             foreach($params as $k=>$v){
@@ -275,35 +275,20 @@ class Output extends PithyBase {
 
         // 非调试和非MVC模式下退出    
         if( !PITHY_DEBUG || PITHY_MODE != "mvc" )
-            return $content;              
+            return $content;
 
-        // 是否显示运行时信息
-        $enable = Pithy::config("Output.Runtime.Enable");
-        if( !empty($enable) ){
-            $code = '<!--RUNTIME_START--><div id="pithy_runtime" class="pithy_runtime">'.$this->getRuntime().'</div><!--RUNTIME_END-->';
-            if( preg_match('/<!--RUNTIME_START-->(.*)<!--RUNTIME_END-->/is', $content, $match) ){  
-                $content = preg_replace($match[0], $code, $content);  
-            }                    
-            elseif( preg_match('/<\/body(\s*)>/is', $content, $match) ) {
-                $content = str_replace($match[0], "\r\n".$code."\r\n".$match[0], $content);
-            }
-            else{
-                $content .= $code;    
-            }                    
-        }
-
-        // 是否显示 Debug 信息
+        // 是否显示调试信息
         $enable = Pithy::config("Output.Debug.Enable"); 
         if( !empty($enable) ){
-            $code = '<!--DEBUG_START--><div id="pithy_debug" class="pithy_debug">'.$this->getDebug().'</div><!--DEBUG_END-->';    
+            $code = $this->getDebug();
             if( preg_match('/<!--DEBUG_START-->(.*)<!--DEBUG_END-->/is', $content, $match) ){  
-                $content = preg_replace($match[0], $code, $content);  
+                $content = preg_replace($match[0], '<div id="pithy_debug">'.$code.'</div>', $content);  
             }                    
             elseif( preg_match('/<\/body(\s*)>/is', $content, $match) ) {
-                $content = str_replace($match[0], "\r\n".$code."\r\n".$match[0], $content);
+                $content = str_replace($match[0], "\r\n<!--DEBUG_START-->".$code."<!--DEBUG_END-->\r\n".$match[0], $content);
             }
             else{
-                $content .= $code;    
+                $content .= $code;
             }
         } 
 
@@ -344,7 +329,7 @@ class Output extends PithyBase {
         }
         return $showTime;
         */
-        return date("Y-m-d H:i:s");
+       return date("Y-m-d H:i:s");
     }
 
     /**
@@ -355,46 +340,64 @@ class Output extends PithyBase {
      +----------------------------------------------------------
      */
     private function getDebug(){
+        
+        $arr = array();
+    
+        $enable = Pithy::config("Output.Debug.Runtime"); 
+        if( !empty($enable) ){
+            
+            // 系统默认的调试信息
+            $arr += array('请求时间' => date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME']));
+            $arr += array('加载时间' => (microtime(true) - PITHY_TIME) . " s");
+            $arr += array('当前主机' => $_SERVER['HTTP_HOST']);
+            $arr += array('当前页面' => $_SERVER['REQUEST_URI']);
+            $arr += array('请求方法' => $_SERVER['REQUEST_METHOD']);
+            $arr += array('通信协议' => $_SERVER['SERVER_PROTOCOL']);
+            $arr += array('用户代理' => $_SERVER['HTTP_USER_AGENT']);
+            $arr += array('用户会话' => session_id());
+            $arr += array('缓存路径' => $this->getCachePath());
 
-        // 获取并清空用户自定义的调试信息，优先显示系统信息
-        $_debug = Pithy::debug();
-
-        // 系统默认的调试信息
-        Pithy::debug('请求时间', date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME']));
-        Pithy::debug('当前主机', $_SERVER['HTTP_HOST']);
-        Pithy::debug('当前页面', $_SERVER['REQUEST_URI']);
-        Pithy::debug('缓存路径', $this->getCachePath());
-        Pithy::debug('请求方法', $_SERVER['REQUEST_METHOD']);
-        Pithy::debug('通信协议', $_SERVER['SERVER_PROTOCOL']);
-        Pithy::debug('用户代理', $_SERVER['HTTP_USER_AGENT']);
-        Pithy::debug('用户会话', session_id());
-
+            // 加载的文件
+            $files = get_included_files();
+            $arr += array('加载文件记录' => count($files).' 个文件<span class="list">'.str_replace("\n",'<br/>',substr(substr(print_r($files,true),7),0,-2)).'</span>');
+        }
+        
+        $debug = Pithy::debug();
+        if (!empty($debug)){
+            $arr += array('调试记录' => count($debug) ? count($debug).' 条调试记录<span class="list"><xmp>'.Pithy::dump($debug, false).'</xmp></span>' : '无调试记录');
+        }
+        
+        $enable = Pithy::config("Output.Debug.Trace");
+        if( !empty($enable) ){
+            $trace = Pithy::trace();
+            $arr += array('跟踪记录' => count($trace) ? count($trace).' 条跟踪记录<span class="list"><xmp>'.Pithy::dump($trace, false).'</xmp></span>' : '无跟踪记录');            
+        }
+        
+        $enable = Pithy::config("Output.Debug.Benchmark");
+        if( !empty($enable) ){
+            $benchmark = Pithy::benchmark();
+            $arr += array('基准测试记录' => count($benchmark) ? count($benchmark).' 条基准测试记录<span class="list"><xmp>'.Pithy::dump($benchmark, false).'</xmp></span>' : '无基准测试记录');
+        }
+        
+        $enable = Pithy::config("Output.Debug.Log");
+        if( !empty($enable) ){
+            $log = Pithy::log();   
+            $arr += array('日志记录' => count($log) ? count($log).' 条日志<span class="list"><br/><xmp>'.implode('\r\n',$log).'</xmp></span>' : '无日志记录');
+        }
+        
+        
         // 用户配置的调试信息
-        $append=Pithy::config("Output.Trace.Append");
+        $append = Pithy::config("Output.Trace.Append");
         if( !empty($append) && is_array($append) )
-            Pithy::debug($append);
-
-        // 加载的文件
-        $files = get_included_files();
-        Pithy::debug('加载文件', count($files).' 个文件<span class="list">'.str_replace("\n",'<br/>',substr(substr(print_r($files,true),7),0,-2)).'</span>');
-		
-        // 加入用户自定义的调试信息
-        Pithy::debug($_debug);
-
-		// 运行时的调试信息
-		$benchmark = Pithy::benchmark();
-		Pithy::debug('基准检测记录', $benchmark);
-        $log = Pithy::log();   
-        Pithy::debug('日志记录', count($log) ? count($log).' 条日志<span class="list"><br/><xmp>'.implode('\r\n',$log).'</xmp></span>' : '无日志记录');
-		
+            $arr += $append;
+        
         // 分解
-        $content = "<div style='position:absolute;bottom:0px;right:0px;width:98%;height:400px;padding:1%;background:#FFFFCC;border:solid 1px #CCCCFF;color:#333333;font-size:12px;line-height:21px;overflow:auto;'>";
-        $arr = Pithy::debug();
+        $content = "<div style='position:absolute;bottom:0px;right:0px;width:98%;height:50%;padding:1%;background:#FFFFCC;border:solid 1px #999;color:#333333;font-size:12px;line-height:21px;overflow:auto;'>";
         foreach($arr as $k=>$v){
-            $content .= "<span class='title'>$k</span> : <span class='content'>".print_r($v, true)."</span> <br>";               
+            $content .= "<span class='title'><b>$k</b></span> : <span class='content'>".print_r($v, true)."</span> <br>";               
         }
 		$content = $content."</div>";
 
         return $content;
-    }        
+    }
 }
