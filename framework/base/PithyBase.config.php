@@ -136,11 +136,13 @@ return array(
             "Prefix" => "/assets/",
         ),
 
-        // Ajax 方式返回配置
-        "Ajax" => array(
-            "Flag" => "callback",       // 提交的字段中包含该字串表示用Ajax方式返回结果
-            "Return" => 0,         		// 默认返回状态
-            "Message" => "OK",          // 默认返回消息
+        // 简单页面显示配置
+        "Show" => array(
+            "Return" => 0,         		// 信息显示默认返回状态
+            "Success" => "OK",          // 信息显示默认返回成功消息
+            "Failure" => "ERR",         // 信息显示默认返回失败消息
+            "Template" => "//message",  // 信息显示模板的路径
+            "Ajax" => "callback",       // Ajax方式返回结果
         ),
 
         // 模板相关配置
@@ -148,7 +150,6 @@ return array(
             "Theme"     => "",          // 默认主题
             "Layout"    => "//main",    // 默认布局
             "Suffix"    => ".php",      // 布局及模板文件的后缀
-            "Message"   => "//message", // 信息显示模板的路径
         ),
         
         // 模板标签

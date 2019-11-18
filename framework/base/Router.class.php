@@ -81,14 +81,14 @@ class Router extends PithyBase {
     } 
     
     public function getGroup(){
-    $host = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
-    $groups = Pithy::config("Router.groups");
-    foreach ($groups as $group => $list){
-      if ($this->_group == $group || (is_array($list) && in_array($host, $list))){
-        $this->_group = $group;
-        break;
-      }
-    }      
+        $host = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
+        $groups = Pithy::config("Router.groups");
+        foreach ($groups as $group => $list){
+            if ($this->_group == $group || (is_array($list) && in_array($host, $list))){
+                $this->_group = $group;
+                break;
+            }
+        }      
         if( empty($this->_group) )
             $this->_group = Pithy::config("Router.default.group");
         return $this->_group;
@@ -168,10 +168,10 @@ class Router extends PithyBase {
                 unset($arr[1]);
             }
             elseif( count($arr)==1 ){
-        if (strpos($route, "/") !== false)
-          $module = $arr[0];
-        else
-          $action = $arr[0];
+                if (strpos($route, "/") !== false)
+                    $module = $arr[0];
+                else
+                    $action = $arr[0];
         
                 unset($arr[0]);
             } 
@@ -201,9 +201,9 @@ class Router extends PithyBase {
     }
 
     // 将参数构建成url地址
-    public function build($route, $params=array(), $full = false){
-        $prefix = $full ? "http://".$_SERVER["HTTP_HOST"] : "";
-        $url = $prefix . $route . "?" . http_build_query($params);
-        return $url;    
+    public function build($route, $params = array()){
+        is_array($route) && isset($route["params"]) && $params = $route["params"];
+        is_array($route) && $route = "/".(isset($route["group"]) ? $route["group"] : $this->group)."/".(isset($route["module"]) ? $route["module"] : $this->module)."/".(isset($route["action"]) ? $route["action"] : $this->action);
+        return "http://".$_SERVER["HTTP_HOST"] . $route . "?" . http_build_query($params);
     }
 }

@@ -4,7 +4,7 @@
 // +----------------------------------------------------------------------
 // | Copyright (c) 2010 http://pithy.cn All rights reserved.
 // +----------------------------------------------------------------------
-// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// | Licensed  (http://www.apache.org/licenses/LICENSE-2.0)
 // +----------------------------------------------------------------------
 // | Author: jenvan <jenvan@pithy.cn>
 // +----------------------------------------------------------------------
@@ -74,16 +74,16 @@ class View extends PithyBase {
     private function getPath($template) {       
                                        
         $group = empty($this->group) ? "" : "@" . $this->group;
-        if( ( $pos = strpos($template, "@") ) > 0 ){
+        if ( ($pos = strpos($template, "@")) > 0){
             $group = substr($template, $pos);
             $template = substr($template, 0, $pos);
         } 
                                                                                  
         $theme = empty($this->theme) ? "" : "$" . $this->theme;
         
-        if( substr($template, 0, 2) == "//" )
+        if (substr($template, 0, 2) == "//")
             $template = "/view/".$theme."/".substr($template, 2);   
-        elseif( substr($template, 0, 1) == "/" )
+        elseif (substr($template, 0, 1) == "/")
             $template = "/".$group."/view/".$theme."/".substr($template, 1);
         else
             $template = "/".$group."/view/".$theme."/".$this->module."/".$template;
@@ -91,10 +91,12 @@ class View extends PithyBase {
                                                                                  
         // 检查当前主题下是否存在对应的视图文件，不存在则在默认主题下查找，还不存在则显示错误提示            
         $filepath = PITHY_APPLICATION."/".$template.Pithy::config("View.Template.Suffix");
-        if( !Pithy::exists($filepath) ){
+        if (!Pithy::exists($filepath)){
             $filepath = str_replace($theme, "", $filepath);
-            if( !Pithy::exists($filepath) )   
-                return $this->show("视图文件[$template]不存在！(分组：$this->group 模块：$this->module 操作：$this->action)", -1);
+            if (!Pithy::exists($filepath)){
+                trigger_error("视图文件[$template]不存在！(分组：$this->group 模块：$this->module 操作：$this->action)", E_USER_WARNING);
+                return "";
+            }
         }
 
         return $filepath;       
@@ -144,13 +146,13 @@ class View extends PithyBase {
         // 分析参数并给相关变量赋值
         $template = $this->template;  
         $params = $this->router->params;
-        if( !empty($arg1) && is_string($arg1) )
+        if (!empty($arg1) && is_string($arg1))
             $template = $arg1;                
-        if( !empty($arg2) && is_string($arg2) )
+        if (!empty($arg2) && is_string($arg2))
             $template = $arg2;                
-        if( !empty($arg1) && is_array($arg1) )
+        if (!empty($arg1) && is_array($arg1))
             $params = $arg1 + $params;                
-        if( !empty($arg2) && is_array($arg2) )
+        if (!empty($arg2) && is_array($arg2))
             $params = $arg2 + $params;
         
         $this->data = $params;
@@ -164,7 +166,7 @@ class View extends PithyBase {
         ob_start();
 
         // 在匿名函数内分解变量并载入模板
-        call_user_func_array(create_function('$pithy_params,$pithy_filename','extract($pithy_params,EXTR_OVERWRITE);require($pithy_filename);'), array($params, $filepath));
+        @call_user_func_array(create_function('$pithy_params,$pithy_filename','extract($pithy_params,EXTR_OVERWRITE);require($pithy_filename);'), array($params, $filepath));
 
         // 获取并清空缓存
         $content = ob_get_clean();
@@ -187,11 +189,11 @@ class View extends PithyBase {
     */
     public function render($content="", $headers=array()) {
         
-        if( is_array($content) ){
+        if (is_array($content)){
             $content = isset($content[0]) ? call_user_func_array(array($this, "fetch"), $content) : call_user_func(array($this, "fetch"), $content);   
         }
 
-        if( !$this->render_before($content) )
+        if (!$this->render_before($content))
             return; 
 
         // 获取布局路径         
@@ -204,7 +206,7 @@ class View extends PithyBase {
         $html = $this->_layoutContent[$this->_layoutTop];        
 
         // 替换布局内容
-        $html = $this->blockReplace( $html );
+        $html = $this->blockReplace ($html);
         $html = str_replace("<!--{ ".Pithy::config("View.Tag.Content")." }-->", $content, $html);    
         !PITHY_DEBUG && $html = preg_replace("/([\s]*<\!\-\-[^>]*\-\->[\s]*)/im", "", $html);
   
@@ -215,18 +217,18 @@ class View extends PithyBase {
         // 发布 当前分组 和 当前模块 的视图目录下的资源文件                                 
         $folder1 = PITHY_APPLICATION."/@".$this->group."/view/".$this->theme."/assets";
         $folder2 = PITHY_APPLICATION."/@".$this->group."/view/".$this->theme."/".$this->module."/assets";
-        $this->publish( array("group" => $folder1, "module" => $folder2) );
+        $this->publish (array("group" => $folder1, "module" => $folder2));
 
 
         // 加载脚本文件
-        if( !empty($this->_paths) ){ 
+        if (!empty($this->_paths)){ 
             
             $codes = array("HEAD_HEAD"=>array(), "HEAD_TAIL"=>array(), "BODY_HEAD"=>array(), "BODY_TAIL"=>array());
             
-            foreach( $this->_paths as $item ){                 
+            foreach ($this->_paths as $item){                 
                 $attr = ""; 
                 foreach($item as $k => $v){
-                    if( in_array($k, array("tag","pos","weight")) )
+                    if (in_array($k, array("tag","pos","weight")))
                         continue;
                     $attr .=" {$k}='{$v}'";
                 }
@@ -234,7 +236,7 @@ class View extends PithyBase {
                 $codes[$item["pos"]][$item["weight"]] = isset($codes[$item["pos"]][$item["weight"]]) ? $codes[$item["pos"]][$item["weight"]].$code : $code; 
             }
             
-            foreach($codes as $pos => $arr ){
+            foreach($codes as $pos => $arr){
                 ksort($arr);
                 $code = implode("", $arr);
                 
@@ -242,7 +244,7 @@ class View extends PithyBase {
                 $tail = $tail == "tail" ? true : false;
                 
                 $pattern = '/(<'.($tail ? '\\/' : '').$tag.'\s*>)/is';                
-                if( preg_match($pattern, $html, $matches) )
+                if (preg_match($pattern, $html, $matches))
                     $html = str_replace($matches[1], ($tail ? $code.$matches[1] : $matches[1].$code), $html);
                 else
                     $html = $tail ? $html.$code : $code.$html;
@@ -258,29 +260,29 @@ class View extends PithyBase {
             "|([=\(\s]+)(['\"]+)([\\.\\./]{2,}assets)|is",
             "|([=\(\s]+)(['\"]+)(\\.\\./assets)|is",
             "|([=\(\s]+)(['\"]+)(\\./assets)|is",
-        );
+       );
         $replace = array(
             "\$1 \$2".$assets_app,
             "\$1 \$2".$assets_group,
             "\$1 \$2".$assets_module,
-        );                       
+       );                       
         $html = preg_replace($pattern, $replace, $html);
 
 
         // header控制 (网页内容类型及字符编码、缓存有效期等)
-        if( !headers_sent() ){
+        if (!headers_sent()){
             
-            if( isset($headers["contentType"]) && !empty($headers["contentType"]) )  
+            if (isset($headers["contentType"]) && !empty($headers["contentType"]))  
                 $contentType = $headers["contentType"];                        
-            if( isset($headers["charset"]) && !empty($headers["charset"]) )  
+            if (isset($headers["charset"]) && !empty($headers["charset"]))  
                 $charset = $headers["charset"];       
-            if( isset($contentType, $charset) && !empty($contentType) && !empty($charset) )
+            if (isset($contentType, $charset) && !empty($contentType) && !empty($charset))
                 header("Content-Type:".$contentType."; charset=".$charset); 
                    
         }         
 
         
-        if( !$this->render_after($html) )
+        if (!$this->render_after($html))
             return;
 
         // 输出页面代码
@@ -294,92 +296,85 @@ class View extends PithyBase {
     public function render_after(&$html){
         return true;     
     }
-             
-            
+
+
     /**
     +----------------------------------------------------------
-    * 消息提示 支持页面跳转，AJAX输出，以及调用模板显示
+    * 消息提示 AJAX输出以及调用模板显示
     +----------------------------------------------------------
-    * @param string $info 提示信息
-    * @param boolean $status 状态      
+    * @access public
     +----------------------------------------------------------
-    * @access private
+    * @param number $rtn 提示状态
+    * @param string $msg 提示信息
+    * @param array $data 返回数据
     +----------------------------------------------------------
     * @return void
     +----------------------------------------------------------
     */
-    public function show($var, $status="") {  
+    public function show($params) {
       
         // 临时关闭静态页面缓存
         Pithy::config("Output.Cache.Expires", 0);  
         
-        // 1、直接跳转
-        if( is_null($status) ){
-            $url = is_string($var) ? $var : $this->router->build($var);
-            Pithy::redirect($url);
+        // 判断参数
+        $args = func_get_args();
+        (!is_array($params) || count($params) > 1) && $params = $args;
+        foreach($params as $k => $v){
+           !isset($params["rtn"]) && is_numeric($v) && $params["rtn"] = $v;
+           !isset($params["msg"]) && is_string($v)  && $params["msg"] = $v;
+           !isset($params["data"]) && is_array($v)  && $params["data"] = $v;
+           if (is_numeric($k))
+               unset($params[$k]);
+        }
+        !isset($params["rtn"])  && $params["rtn"] = Pithy::config("View.Show.Return");
+        !isset($params["msg"])  && $params["msg"] = $params["rtn"] ? Pithy::config("View.Show.Failure") : Pithy::config("View.Show.Success");
+        !isset($params["data"]) && $params["data"] = array();        
+        //Pithy::debug($params);
+
+        // AJAX输出
+        $callback = Pithy::config("View.Show.Ajax");
+        if ((isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && "xmlhttprequest" == strtolower($_SERVER["HTTP_X_REQUESTED_WITH"])) || !empty($_REQUEST[$callback])){
+            krsort($params);
+            $content = json_encode($params);
+            if (!empty($_REQUEST[$callback])){
+                $content = $_REQUEST[$callback]."(".$content.");";
+            } 
+            echo $content;
             exit;
         }
 
-        // 2、AJAX输出
-        if( (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 'xmlhttprequest' == strtolower($_SERVER['HTTP_X_REQUESTED_WITH'])) || !empty($_REQUEST[Pithy::config('View.Ajax.Flag')]) ){
-            $params = func_get_args();
-            $this->ajax($params);
-            exit;
-        } 
+        // 模板输出
+        $template = Pithy::config("View.Show.Template");
+        if ($this->getPath($template) !== "")
+            echo $this->fetch($template, $params);
+        else
+            Pithy::dump($params);
+        exit;
+    }
 
-        // 3、模板输出
-        $params = is_array($var) ? array("data"=>$var, "status"=>$status) : array("info"=>$var, "status"=>$status);
-        echo $this->fetch(Pithy::config("View.Template.Message"), $params);
-        exit;         
-    }  
-    
     /**
     +----------------------------------------------------------
-    * Ajax方式返回数据到客户端
+    * 页面跳转
+    +----------------------------------------------------------
+    * @param string $var 跳转地址
     +----------------------------------------------------------
     * @access public
-    +----------------------------------------------------------
-    * @param array $params 要返回的数据 array("rtn"=>0, "msg"=>"OK", "data"=>array())
+    +---------------------------------------------------------- 
+    * @param string | array $url 路径 
     +----------------------------------------------------------
     * @return void
     +----------------------------------------------------------
     */
-    public function ajax($params){
-
-        // 临时关闭静态页面缓存
-        Pithy::config("Output.Cache.Expires", 0); 
-
-        // 判断参数
-        if( !is_array($params) ){
-            $params = array();
-            $arr = func_get_args();
-            foreach($arr as $arg){
-               is_numeric($arg) && $params["rtn"] = $arg;
-               is_string($arg)  && $params["msg"] = $arg;
-               is_array($arg)   && $params["data"] = $arg;
-            }
+    public function redirect($url) {
+        Pithy::config("Output.Cache.Expires", 0);
+        if (isset($url) && !empty($url)){
+            is_array($url) && $url = $this->router->build($url);
+            Pithy::redirect($url);
+            exit;
         }
-
-        if( !isset($params["rtn"]) ) 
-            $params["rtn"] = Pithy::config('View.Ajax.Return');
-
-        if( !isset($params["msg"]) )
-            $params["msg"] = Pithy::config('View.Ajax.Message'); 
+        throw new Exception("跳转地址错误！");
+    }
     
-        if( !isset($params["data"]) )
-            $params["data"] = array();
-
-        // 生成 json 内容
-        $content = json_encode($params);     
-        if( !empty($_REQUEST["callback"]) ){
-            $content = $_REQUEST["callback"]."(".$content.");";
-        } 
-
-        // 输出
-        echo $content;
-        exit;
-    }                  
-
     
     /**
     +----------------------------------------------------------
@@ -396,12 +391,15 @@ class View extends PithyBase {
         
         $this->_layoutTop = $layout;
         
-        $filepath = $this->getPath($layout);  
+        $filepath = $this->getPath($layout);
+        
+        if (empty($filepath))
+            throw new Exception("布局文件不存在！");
         
         ob_start();
         extract($this->data, EXTR_SKIP);
         require($filepath);
-        $this->_layoutContent[$layout] = ob_get_clean();                       
+        $this->_layoutContent[$layout] = ob_get_clean();
     }
     
     
@@ -420,7 +418,7 @@ class View extends PithyBase {
     }
     private function blockReplace($html){
         
-        if( preg_match("/<\!\-\-\{ block[^>]* \}\-\->/im", $html) != 1 || empty($this->_blocks) )
+        if (preg_match("/<\!\-\-\{ block[^>]* \}\-\->/im", $html) != 1 || empty($this->_blocks))
             return $html;
         
         // 替换简写标签
@@ -428,9 +426,9 @@ class View extends PithyBase {
         
         // 替换所有标签            
         $pattern = "/<\!\-\-\{ block_begin (\S*) \}\-\->([\S|\s]*?)<\!\-\-\{ block_end \}\-\->/im";
-        if( preg_match_all($pattern, $html, $matches, PREG_SET_ORDER) ){
-            foreach( $matches as $match ){
-                if( isset($this->_blocks[$match[1]]) ){
+        if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER)){
+            foreach ($matches as $match){
+                if (isset($this->_blocks[$match[1]])){
                     $code = $this->_blocks[$match[1]];
                     $html = preg_replace(str_replace("(\S*)", $match[1], $pattern), "\r\n<!--{ block_begin ".$match[1]." }-->\r\n".$code."\r\n<!--{ block_end }-->", $html);  
                     unset($this->_blocks[$match[1]]);     
@@ -439,7 +437,7 @@ class View extends PithyBase {
         }
  
         // 如果替换过标签，则继续替换一次，可以保证替换后的内容中的标签再次被替换
-        if( isset($code) )
+        if (isset($code))
             return $this->blockReplace($html);  
     
         return $html;                       
@@ -465,18 +463,18 @@ class View extends PithyBase {
     */
     public function publish($name, $folder=""){            
 
-        if( !is_array( $name ) )
+        if (!is_array ($name))
             $arr = array($name => $folder);
         else
             $arr = $name;
 
         foreach($arr as $name=>$folder){
 
-            if( !Pithy::exists( $folder ) ) 
+            if (!Pithy::exists ($folder)) 
                 return false;
 
             $suffix = "";            
-            if( Pithy::config("View.Assets.Publish") ){
+            if (Pithy::config("View.Assets.Publish")){
 
             } 
 
@@ -484,7 +482,7 @@ class View extends PithyBase {
 
         }    
 
-        $this->_assets = array_merge( $this->_assets, $arr );
+        $this->_assets = array_merge ($this->_assets, $arr);
 
         return true;
     } 
@@ -510,35 +508,35 @@ class View extends PithyBase {
 
         $arr = array();
 
-        if( is_string($attr) )
+        if (is_string($attr))
             $attr = array("pos"=>$attr);        
-        if( is_numeric($attr) )
+        if (is_numeric($attr))
             $attr = array("weight"=>$attr);
-        if( !empty($pos) )
+        if (!empty($pos))
             $attr["pos"] = $pos;  
-        if( !empty($weight) )
+        if (!empty($weight))
             $attr["weight"] = $weight;        
 
         $ext = strtolower(substr($filepath, strrpos($filepath, ".") + 1));
  
-        if( $ext == "css" ){
+        if ($ext == "css"){
             $arr["tag"] = "link";
             $arr["rel"] = "stylesheet";
             $arr["href"] = $filepath;
         }            
-        if( $ext == "js" ){
+        if ($ext == "js"){
             $arr["tag"] = "script";
             $arr["language"] = "javascript";
             $arr["src"] = $filepath;                
         }
         
-        if( !isset($arr["tag"]) || empty($arr["tag"]) )
+        if (!isset($arr["tag"]) || empty($arr["tag"]))
             return;
         
         $arr = array_merge($attr, $arr);
-        if( !isset($arr["pos"]) || in_array($arr["pos"], array("HEAD_HEAD", "HEAD_TAIL", "BODY_HEAD", "BODY_TAIL")) )
+        if (!isset($arr["pos"]) || in_array($arr["pos"], array("HEAD_HEAD", "HEAD_TAIL", "BODY_HEAD", "BODY_TAIL")))
             $arr["pos"] = "HEAD_TAIL";
-        if( !isset($arr["weight"]) )
+        if (!isset($arr["weight"]))
             $arr["weight"] = 0;
                 
         $this->_paths[] = $arr; 

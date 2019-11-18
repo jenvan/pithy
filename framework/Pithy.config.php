@@ -57,7 +57,7 @@ return array(
         "Error" => array(
             "Trace"       => true,    // 是否开启错误跟踪
             "Log"         => true,    // 是否开启错误记录
-            "Display"     => true,    // 是否开启错误信息显示
+            "Display"     => false,    // 是否开启错误信息显示
             "Message"     => "系统出错，请稍后再试！",    // 自定义的错误信息
         ), 
 

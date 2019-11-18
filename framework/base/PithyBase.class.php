@@ -17,7 +17,7 @@ class PithyBase {
     public function __construct(){ 
 
         // 核心类自动加载动态绑定
-    /*
+        /*
         $name = get_class($this);
         $core = array("Hook", "Router", "Input", "Output", "View");
         if( in_array($name, $core) || ( $c = is_subclass_of($this, "Controller") ) || ( $m = is_subclass_of($this, "Model") ) ){
@@ -35,7 +35,7 @@ class PithyBase {
                 }
             }
         } 
-    */ 
+        */ 
 
         // 初始化
         $args = func_get_args();        

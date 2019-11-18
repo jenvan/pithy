@@ -4,13 +4,13 @@
 // +----------------------------------------------------------------------
 // | Copyright (c) 2010 http://pithy.cn All rights reserved.
 // +----------------------------------------------------------------------
-// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// | Licensed (http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
 // | Author: jenvan <jenvan@pithy.cn>
 // +----------------------------------------------------------------------
 
 // 如果 Pithy 已经运行，则返回
-if( defined("PITHY") ) return;
+if (defined("PITHY")) return;
 
 define("PITHY", true);
 define("PITHY_VERSION", "0.50");
@@ -25,10 +25,10 @@ define("PITHY_RANDOM", "R_".PITHY_TIME."_".mt_rand());
 defined("PITHY_MODE") || define("PITHY_MODE", "lite");
 
 // 定义系统相关常量
-define("IS_WIN", stristr(PHP_OS, "WIN") ? 1 : 0 );
-define("IS_CGI", substr(PHP_SAPI, 0, 3) == "cgi" ? 1 : 0 );
-define("IS_CLI", PHP_SAPI == "cli"  ? 1 : 0 ); 
-                               
+define("IS_WIN", stristr(PHP_OS, "WIN") ? 1 : 0);
+define("IS_CGI", substr(PHP_SAPI, 0, 3) == "cgi" ? 1 : 0);
+define("IS_CLI", PHP_SAPI == "cli"  ? 1 : 0); 
+
 
 // 精简模式只需包含此文件即可执行
 PITHY_MODE == "lite" && Pithy::run();
@@ -36,10 +36,10 @@ PITHY_MODE == "lite" && Pithy::run();
 
 // 核心类
 class Pithy{
-                           
+
     static public $inputer = null;
     static public $outputer = null;
-                                  
+
     static public $bug = array();
 
     static private $_alias = array();                                             
@@ -59,30 +59,30 @@ class Pithy{
         self::init($config);
         
         // lite 模式
-        if( PITHY_MODE == "lite" ){
+        if (PITHY_MODE == "lite"){
               
         }        
         
         // extend 模式
-        if( PITHY_MODE == "extend" ){
+        if (PITHY_MODE == "extend"){
             // 导入扩展库目录
             self::import("#.libs.*");     
         }
         else{
             // 设置异常和错误接口
-            set_exception_handler( array(__CLASS__, "exception") );
-            set_error_handler( array(__CLASS__, "error") );   
+            set_exception_handler(array(__CLASS__, "exception"));
+            set_error_handler(array(__CLASS__, "error"));   
         }
 
         // cli mvc rest 模式
-        if( in_array(PITHY_MODE, array("cli", "mvc", "rest")) ){ 
+        if (in_array(PITHY_MODE, array("cli", "mvc", "rest"))){ 
             
-            if( in_array(PITHY_MODE, array("mvc", "rest")) ){
+            if (in_array(PITHY_MODE, array("mvc", "rest"))){
                 // 使用 ob 控制                
                 ob_start();
                 
                 // Session 初始化
-                if( !headers_sent() )
+                if (!headers_sent())
                     session_start();
             } 
             
@@ -111,82 +111,82 @@ class Pithy{
         !defined("PITHY_APPLICATION") && trigger_error("PITHY_APPLICATION undefined !", E_USER_ERROR);
 
         // 加载配置
-        if( false === ($default = @include(PITHY_SYSTEM."Pithy.config.php")) ){
+        if (false === ($default = @include(PITHY_SYSTEM."Pithy.config.php"))){
             trigger_error("Config file not found! [default]", E_USER_ERROR);
         }
-        if( is_string($config) && !empty($config) && false === ($config = @include($config)) ){
+        if (is_string($config) && !empty($config) && false === ($config = @include($config))){
             trigger_error("Config file not found! [defined]", E_USER_ERROR);    
         }         
-        self::config( self::merge($default, $config), true );          
-        if( count(self::config()) == 0 )
+        self::config(self::merge($default, $config), true);          
+        if (count(self::config()) == 0)
             trigger_error("Config error!", E_USER_ERROR);                             
         
         // 设置系统时区
-        if( function_exists("date_default_timezone_set") )
-            date_default_timezone_set( self::config("App.Timezone") );
+        if (function_exists("date_default_timezone_set"))
+            date_default_timezone_set(self::config("App.Timezone"));
         
         // 定义调试状态
         defined("PITHY_DEBUG") || define("PITHY_DEBUG", self::config("App.Debug"));
 
         // 预定义常量
         $arr = self::config("App.Define");
-        if( is_array($arr) && !empty($arr) ){
-            foreach($arr as $k => $v )
+        if (is_array($arr) && !empty($arr)){
+            foreach($arr as $k => $v)
                 defined($k) || define($k, $v);
         }
         defined("PITHY_PATH_RUNTIME") || define("PITHY_PATH_RUNTIME", sys_get_temp_dir());
-        defined("PITHY_PATH_CONFIG") || define("PITHY_PATH_CONFIG", PITHY_APPLICATION."config".DIRECTORY_SEPARATOR);
+        defined("PITHY_PATH_CONFIG")  || define("PITHY_PATH_CONFIG", PITHY_APPLICATION."config".DIRECTORY_SEPARATOR);
 
         // 预加载类         
         $arr = self::config("App.Preload");
-        if( is_array($arr) && !empty($arr) ){
-            foreach($arr as $k => $v ){
-                if( !self::import($v["path"]) )     
+        if (is_array($arr) && !empty($arr)){
+            foreach($arr as $k => $v){
+                if (!self::import($v["path"]))     
                     trigger_error("Preload class not exists !", E_USER_ERROR); 
                 self::$_object[$k] = $v;   
             }                
         }                 
         
         // 类自动加载功能设置
-        if( self::config("App.Autoload.Enable") && function_exists("spl_autoload_register") ){
+        if (self::config("App.Autoload.Enable") && function_exists("spl_autoload_register")){
             
             // 将本类的autoload方法放在最前面
             $arr = spl_autoload_functions(); 
             $arr = empty($arr) ? array() : $arr;
 
             $funcs = $arr;
-            foreach( $funcs as $func ){
+            foreach($funcs as $func){
                 spl_autoload_unregister($func);    
             }
 
             array_unshift($arr, array(__CLASS__, "autoload")); 
 
             $funcs = $arr;
-            foreach( $funcs as $func ){
+            foreach($funcs as $func){
                 spl_autoload_register($func);    
             }             
             
             // 设置文件自动加载路径
             $paths = self::config("App.Autoload.Path");
-            if( empty($paths) )
+            if (empty($paths))
                 $paths = array();
-            elseif( is_string($paths) )
+            elseif (is_string($paths))
                 $paths = explode(",", $paths);
-            $paths = array_unique( array_merge(explode(",", "#.*"), $paths) );             
+            $paths = array_unique(array_merge(explode(",", "#.*"), $paths));             
             
-            foreach($paths as $path){
+            foreach ($paths as $path){
                 self::import($path);
             }
         }    
 
         
         // 非调试状态下结束检查
-        if( PITHY_DEBUG != true )
+        if (PITHY_DEBUG != true)
             return;
 
 
         // 检查PHP版本及PHP相关的必须信息
-        if( version_compare(PHP_VERSION, "5.0.0", "<") ){
+        if (version_compare(PHP_VERSION, "5.0.0", "<")){
             trigger_error("PHP version must >5.0 !", E_USER_ERROR);
         }
         
@@ -198,14 +198,14 @@ class Pithy{
      */
     static protected function exec(){
 
-        if( !in_array(PITHY_MODE, array("cli", "mvc", "rest")) )
+        if (!in_array(PITHY_MODE, array("cli", "mvc", "rest")))
             return;
 
         // 加载基础核心配置        
-        if( false === ($config = @include(PITHY_SYSTEM."base/PithyBase.config.php")) ){
+        if (false === ($config = @include(PITHY_SYSTEM."base/PithyBase.config.php"))){
             trigger_error("Config file not found! [PithyBase]", E_USER_ERROR);    
         }         
-        self::config( self::merge($config, self::config()), true );  
+        self::config(self::merge($config, self::config()), true);  
             
         // 导入基础核心目录
         self::import("#.base.*");     
@@ -215,7 +215,7 @@ class Pithy{
         
         
         /* CLI 模式 */ 
-        if( PITHY_MODE == "cli" ){
+        if (PITHY_MODE == "cli"){
             Command::singleton()->call();            
             return;
         }
@@ -256,17 +256,17 @@ class Pithy{
         Pithy::benchmark("cache");
 
         // 缓存构造钩子：可以替换系统自带的缓存类
-        if( $hook->call("cache_init") == true ){
+        if ($hook->call("cache_init") == true){
             Pithy::$outputer = Output::singleton();
         }
 
         // 缓存显示钩子：可以替换系统自带的缓存输出
-        if( $hook->call("cache_display") == true){
+        if ($hook->call("cache_display") == true){
             $rtn = Pithy::$outputer->cacheDisplay();    
         }                                      
 
         // 本次请求如果是输出缓存内容，则退出
-        if( isset($rtn) && $rtn )
+        if (isset($rtn) && $rtn)
             return; 
 
 
@@ -276,12 +276,12 @@ class Pithy{
         Pithy::benchmark("input");
 
         // 输入构造钩子：可以替换系统自带的输入类
-        if( $hook->call("input_init") == true ){
+        if ($hook->call("input_init") == true){
             Pithy::$inputer = Input::singleton();
         }
 
         // 输入过滤器钩子：可以挂载 参数过滤 、编码转换、安全检测 操作
-        if( $hook->call("input_filter") == true ){
+        if ($hook->call("input_filter") == true){
             Pithy::$inputer->filter();     
         }                                
 
@@ -295,7 +295,7 @@ class Pithy{
         $hook->call("controller");
                            
         // 实例化控制器并执行动作 
-        Controller::factory( $router->controller )->run();
+        Controller::factory($router->controller)->run();
 
 
         /***********************************/ 
@@ -304,22 +304,22 @@ class Pithy{
         Pithy::benchmark("output"); 
 
         // 输出构造钩子：可以替换系统自带的输出类
-        if( $hook->call("output_init") ){
+        if ($hook->call("output_init")){
             Pithy::$outputer = Output::singleton();
         }
 
         // 输出过滤器钩子： 输出控制、格式化等
-        if( $hook->call("output_filter") ){
+        if ($hook->call("output_filter")){
             Pithy::$outputer->filter();    
         }
 
         // 缓存文件构造钩子：可以替换系统自带的缓存构造
-        if( $hook->call("output_cache") ){
+        if ($hook->call("output_cache")){
             Pithy::$outputer->cacheBuild();    
         }
 
         // 输出显示替换钩子：此处可以替换系统自带的输出类显示
-        if( $hook->call("output_display") ){
+        if ($hook->call("output_display")){
             Pithy::$outputer->display();   
         } 
                                        
@@ -342,24 +342,24 @@ class Pithy{
      */
     static public function import($name){
         
-        if( empty($name) ) return false;
+        if (empty($name)) return false;
 
         static $data = array();        
         
         // 首先判断是否已经导入过，导入过则返回之前的判断结果       
-        if( !PITHY_DEBUG && is_array($data) && isset($data[$name]) ){
+        if (!PITHY_DEBUG && is_array($data) && isset($data[$name])){
             return $data[$name];
         }                       
         
         // 批量导入
-        if( substr($name, -2) == ".*" ){
+        if (substr($name, -2) == ".*"){
             
             $status = false;
             $folder = substr($name, 0, -1);
-            if( self::exists($folder) && false !== ($handle = opendir($folder)) ){
-                while( false !== ($file = readdir($handle)) ){
-                    if( substr($file, -4) == ".php" && is_file($folder.$file) ){ 
-                        self::import( $folder.$file );
+            if (self::exists($folder) && false !== ($handle = opendir($folder))){
+                while(false !== ($file = readdir($handle))){
+                    if (substr($file, -4) == ".php" && is_file($folder.$file)){ 
+                        self::import($folder.$file);
                     }
                 }
                 closedir($handle);
@@ -374,7 +374,7 @@ class Pithy{
 
         // 获取单个文件的路径和类名
         $filepath = $name;
-        if( in_array($name[0], array("#","~")) && isset($name[1]) && $name[1] == "." ){                                  
+        if (in_array($name[0], array("#","~")) && isset($name[1]) && $name[1] == "."){                                  
             $name = strstr($name, "@") == "" ? $name : preg_replace("/(.{2})([^@]*)@(.*)/", "\$1\@$3.\$2", $name);
             $filepath = str_replace(".", "/", $name).".class.php";                     
         }                           
@@ -395,11 +395,11 @@ class Pithy{
     * @return 返回载入成功的类或者显示出错信息
     */
     static public function load($name, $force = true){
-        if( !isset(self::$_object[$name]) ){
+        if (!isset(self::$_object[$name])){
             $force == true && trigger_error("Object [$name] not preload! ", E_USER_ERROR);
             return null;
         }
-        if( !isset(self::$_object[$name]["instance"]) ){
+        if (!isset(self::$_object[$name]["instance"])){
             self::$_object[$name]["instance"] = self::instance(self::$_object[$name]["class"], self::$_object[$name]["params"], true);       
         }   
         return self::$_object[$name]["instance"];         
@@ -412,10 +412,10 @@ class Pithy{
      */
     static public function autoload($class){
         
-        if( self::config("App.Autoload.Enable") && isset($class[0]) && isset(self::$_alias[$class]) && false !== include(self::$_alias[$class]) )
+        if (self::config("App.Autoload.Enable") && isset($class[0]) && isset(self::$_alias[$class]) && false !== include(self::$_alias[$class]))
             return;
         
-        if( PITHY_MODE == "extend" )
+        if (PITHY_MODE == "extend")
             return;
         
         trigger_error("Class ($class) is not defined!", E_USER_ERROR);          
@@ -435,23 +435,23 @@ class Pithy{
 
         $singleton = (!is_array($args) && is_null($args)) ? (boolean) $args : $singleton;
 
-        if( !$singleton || !isset($data[$class]) ){                
-            if( class_exists($class) ){                     
-                if( !is_array($args) || empty($args) ){                        
+        if (!$singleton || !isset($data[$class])){                
+            if (class_exists($class)){                     
+                if (!is_array($args) || empty($args)){                        
                     $data[$class] = new $class();   
                 }
                 else{                        
                     $keys = array_keys($args);    
-                    $params = '$args["'.( count($keys) > 1 ? implode('"],$args["',$keys) : $keys[0] ).'"]';
+                    $params = '$args["'.(count($keys) > 1 ? implode('"],$args["',$keys) : $keys[0]).'"]';
                     eval('$data[$class] = new $class('.$params.');');
 
                     /*
-                    // Note: ReflectionClass::newInstanceArgs() is available for PHP 5.1.3+
-                    // $class=new ReflectionClass($class);
-                    // $object=$class->newInstanceArgs($args);
-                    $_class=new ReflectionClass($class);
-                    $data[$class]=call_user_func_array(array($_class,'newInstance'),$args);
-                    */
+                      // Note: ReflectionClass::newInstanceArgs() is available for PHP 5.1.3+
+                      // $class=new ReflectionClass($class);
+                      // $object=$class->newInstanceArgs($args);
+                      $_class=new ReflectionClass($class);
+                      $data[$class]=call_user_func_array(array($_class,'newInstance'),$args);
+                      */
                 }                        
             }                      
             else{
@@ -470,54 +470,52 @@ class Pithy{
      * @param mixed $vars 类属性
      * @return mixed
      */
-    static public function call($object, $methodName, $params=null, $vars=null){
+    static public function call($object, $methodName, &$params=null, $vars=null){
         
-        if( !method_exists($object, $methodName) )
-            trigger_error( get_class($object)."::{$methodName} : Method not exists!", E_USER_ERROR );
+        if (!method_exists($object, $methodName))
+            trigger_error(get_class($object)."::{$methodName} : Method not exists!", E_USER_ERROR);
         
-        if( !is_object($object) )
+        if (!is_object($object))
             $object = self::instance($object);
 
         $method = new ReflectionMethod($object, $methodName);
-        if( $method->getNumberOfParameters() <= 0 )
+        if ($method->getNumberOfParameters() <= 0)
             return $object->$methodName();
 
         $args = array();
-        foreach( $method->getParameters() as $i=>$param ){
+        foreach($method->getParameters() as $i=>$param){
             $name = $param->getName();
-            if( is_array($params) && isset($params[$name]) ){
-                if( $param->isArray() )
+            if (is_array($params) && isset($params[$name])){
+                if ($param->isArray())
                     $args[$name] = is_array($params[$name]) ? $params[$name] : array($params[$name]);
-                elseif( !is_array($params[$name]) )
+                elseif (!is_array($params[$name]))
                     $args[$name] = $params[$name];
                 else
-                    trigger_error( get_class($object)."::{$methodName} : Getted paramters [{$name}] is error!", E_USER_ERROR );
+                    trigger_error(get_class($object)."::{$methodName} : Getted paramters [{$name}] is error!", E_USER_ERROR);
             }
-            elseif( $param->isDefaultValueAvailable() )
+            elseif ($param->isDefaultValueAvailable())
                 $args[$name] = $param->getDefaultValue();
             else
-                trigger_error( get_class($object)."::{$methodName} : Getted paramters [{$name}] is missing!", E_USER_ERROR );
+                trigger_error(get_class($object)."::{$methodName} : Getted paramters [{$name}] is missing!", E_USER_ERROR);
         }
+        $params = self::merge($params, $args);
         
         $class = new ReflectionClass($object);
-        if( !empty($vars) && is_array($vars) ){    
-            foreach( $vars as $name => $value ){
-                if( $class->hasProperty($name) ){
+        if (!empty($vars) && is_array($vars)){    
+            foreach($vars as $name => $value){
+                if ($class->hasProperty($name)){
                     $property = $class->getProperty($name);
-                    if( $property->isPublic() && !$property->isStatic() ){
+                    if ($property->isPublic() && !$property->isStatic()){
                         $object->$name = $value;
                         unset($vars[$name]);
                     }
                 }
             }
-            if( !empty($vars) )
-                trigger_error( get_class($object)." : Unknown property ".implode(', ',array_keys($vars))." !", E_USER_ERROR );    
-        }
-        if ($class->hasMethod("setParams")){
-            $object->setParams($args);
+            if (!empty($vars))
+                trigger_error(get_class($object)." : Unknown property ".implode(', ',array_keys($vars))." !", E_USER_ERROR);    
         }
         
-        return $method->invokeArgs($object, $args);          
+        return $method->invokeArgs($object, $args);
 
     }
 
@@ -530,14 +528,14 @@ class Pithy{
     static public function benchmark($tag=null){
         static $data = array();
         
-        if( is_null($tag) )
+        if (is_null($tag))
             return $data;   
             
         $args = func_get_args(); 
-        if( count($args) == 3 ){
-            if( !isset($data[$args[0]], $data[$args[1]], $data[$args[0]][$args[2]], $data[$args[1]][$args[2]]) )
+        if (count($args) == 3){
+            if (!isset($data[$args[0]], $data[$args[1]], $data[$args[0]][$args[2]], $data[$args[1]][$args[2]]))
                 return 0;
-            return abs( $data[$args[0]][$args[2]] - $data[$args[1]][$args[2]] );
+            return abs($data[$args[0]][$args[2]] - $data[$args[1]][$args[2]]);
         }
             
         $data[$tag] = array("time" => microtime(true), "memory" => memory_get_usage());
@@ -548,10 +546,10 @@ class Pithy{
         
         static $data = array();
         
-        if( !isset($data[$key]) ) {
+        if (!isset($data[$key])) {
             $data[$key] = 0;
         }
-        if( empty($step) )
+        if (empty($step))
             return $data[$key];
         else
             $data[$key] = $data[$key] + (int)$step;
@@ -565,31 +563,31 @@ class Pithy{
         $var = $params[0];
 
         $label = "";
-        if( isset($params[1]) && is_string($params[1]) )
+        if (isset($params[1]) && is_string($params[1]))
             $label = $params[1];
-        if( isset($params[2]) && is_string($params[2]) )
+        if (isset($params[2]) && is_string($params[2]))
             $label = $params[2];
 
         $echo = true;    
-        if( isset($params[1]) && is_bool($params[1]) )
+        if (isset($params[1]) && is_bool($params[1]))
             $echo = $params[1];
-        if( isset($params[2]) && is_bool($params[2]) )
+        if (isset($params[2]) && is_bool($params[2]))
             $echo = $params[2];
 
 
         $output = var_export($var, true);   
-        if( IS_CLI || !$echo ){
+        if (IS_CLI || !$echo){
             $label = empty($label) ? $label : $label.PHP_EOL;
             $output = $label.$output;
         }
         else{
             $output = ini_get('html_errors') ? htmlspecialchars($output,ENT_QUOTES) : $output;    
             $output = "<pre>".$output."</pre>";            
-            if( !empty($label) )
+            if (!empty($label))
                 $output = "<fieldset><legend style='margin-top:10px;padding:5px;font-weight:600;background:#CCC;'> ".$label." </legend>".$output."</fieldset>";
         }
 
-        if( $echo )
+        if ($echo)
             echo $output;
 
         return $output;
@@ -614,7 +612,10 @@ class Pithy{
         
         try {
             $handle = stream_socket_client("udp://255.255.255.255:9527", $errno, $errstr);
-            fwrite($handle, "--------------------------------------------------------------------------------\n".$str);
+            //fwrite($handle, "--------------------------------------------------------------------------------\n");
+            for ($i = 0; $i < strlen($str); $i = $i + 100){
+                fwrite($handle, substr($str, $i, 100));
+            }
             fclose($handle);
         }
         catch(Exception $e){}
@@ -625,51 +626,51 @@ class Pithy{
 
         static $data = array();
         
-        if( empty($msg) )
+        if (empty($msg))
             return $data;  
 
-        if( empty($traces) || !is_array($traces) ){
-            if( function_exists("debug_backtrace") )                 
+        if (empty($traces) || !is_array($traces)){
+            if (function_exists("debug_backtrace"))                 
                 $traces = debug_backtrace();
             else
                 $traces = array();
         }
 
-        if( !empty($traces) ){ 
+        if (!empty($traces)){ 
             $msg .= " ".PHP_EOL."-------------------------------".PHP_EOL;                               
-            foreach( $traces as $t ){
+            foreach($traces as $t){
                 $msg .= "# ";
-                if( isset($t["file"]) )
+                if (isset($t["file"]))
                     $msg .= $t["file"]." [".$t["line"]."]  ".PHP_EOL;
                 else
                     $msg .= "[PHP inner-code] ".PHP_EOL;
-                if( isset($t["class"]) )
+                if (isset($t["class"]))
                     $msg .= $t["class"].$t["type"];
                 $msg .= $t["function"]."(";
-                if( isset($t["args"]) && sizeof($t["args"]) > 0 ){
+                if (isset($t["args"]) && sizeof($t["args"]) > 0){
                     $count = 0;
-                    foreach( $t["args"] as $item ){
+                    foreach($t["args"] as $item){
 
-                        if( is_string($item) ){
+                        if (is_string($item)){
                             $str = str_replace(array("\r","\n","\r\n"), "", $item);
-                            if( strlen($item)>200 )
+                            if (strlen($item)>200)
                                 $msg .= "'". substr($str, 0, 200) . "...'";
                             else
                                 $msg .= "'" . $str . "'";
                         }                               
-                        elseif( is_bool($item) )
+                        elseif (is_bool($item))
                             $msg .= $item ? "true" : "false";
-                        elseif( is_null($item) )
+                        elseif (is_null($item))
                             $msg .= "NULL";
-                        elseif( is_numeric($item) )
+                        elseif (is_numeric($item))
                             $msg .= $item;
-                        elseif( is_object($item ))
+                        elseif (is_object($item))
                             $msg .= get_class($item); 
-                        elseif( is_resource($item) )
+                        elseif (is_resource($item))
                             $msg .= get_resource_type($item);
-                        elseif( is_array($item) ){
-                            if( $count < 3 ){
-                                @array_walk($item, create_function('&$v,$k','if( is_object($v) ){ $v = "<OBJECT>".get_class($v); } if( is_resource($v) ){ $v = "<RESOURCE>".get_resource_type($v); }'));    
+                        elseif (is_array($item)){
+                            if ($count < 3){
+                                @array_walk($item, create_function('&$v,$k','if (is_object($v)){ $v = "<OBJECT>".get_class($v); } if (is_resource($v)){ $v = "<RESOURCE>".get_resource_type($v); }'));    
                                 $msg .= str_replace(array("\r","\n","\r\n"), "", var_export($item, true));
                             }
                             else
@@ -677,17 +678,17 @@ class Pithy{
                         }
 
                         $count++;
-                        if( count($t["args"]) > $count )
+                        if (count($t["args"]) > $count)
                             $msg .= ", ";
                     }
                 }                    
                 $msg .= ") ".PHP_EOL;
             }
-            $msg .=  (  IS_CLI ? "" : "@ ".date("Y-m-d H:i:s")." | ".$_SERVER["SERVER_ADDR"]." : ".$_SERVER["REMOTE_ADDR"] );
+            $msg .=  ( IS_CLI ? "" : "@ ".date("Y-m-d H:i:s")." | ".$_SERVER["SERVER_ADDR"]." : ".$_SERVER["REMOTE_ADDR"]);
         }
 
         $data[] = (strstr($msg,"\n") ? "\n" : "").$msg;
-        count( $data ) <= 100 || array_slice($data, -100);
+        count($data) <= 100 || array_slice($data, -100);
 
         return $msg;
     }
@@ -698,7 +699,7 @@ class Pithy{
         static $data = array();
         
         // 如果日志内容为空，则表示返回之前记录的所有日志内容
-        if( empty($message) )
+        if (empty($message))
             return $data; 
 
         // 支持的日志记录类型
@@ -707,7 +708,7 @@ class Pithy{
             "MAIL" => 1,
             "TCP" => 2,
             "FILE" => 3,
-        );
+       );
 
         // 支持的日志记录级别
         $levels = array(
@@ -717,7 +718,7 @@ class Pithy{
             "NOTICE",
             "INFO",
             "DEBUG",
-        );
+       );
 
         // 默认的日志设置参数
         $config = array(
@@ -725,22 +726,22 @@ class Pithy{
             "level" => "INFO",        // 日志记录级别
             "destination" => "common",// 日志记录位置  PITHY_PATH_RUNTIME/log/Ymd/common.log
             "extra" => "",            // 日志扩展信息（日志记录类型为 MAIL 和 TCP 时使用，参见 error_log 函数)
-        ); 
+       ); 
 
         // 参数是数字时，设置日志记录类型
-        if( is_int($options) )
+        if (is_int($options))
             $config["type"] = $options;            
 
         // 参数是字符串时，设置日志记录级别或位置
-        if( is_string($options) ){
-            if( in_array(strtoupper($options), $levels) )
+        if (is_string($options)){
+            if (in_array(strtoupper($options), $levels))
                 $config["level"] = strtoupper($options); 
             else
                 $config["destination"] = $options;
         }
 
         // 参数是数组时，将其同默认参数合并
-        if( is_array($options) )
+        if (is_array($options))
             $config = self::merge($config, $options);
 
         // 设置相关变量            
@@ -750,7 +751,7 @@ class Pithy{
         // 最终的日志参数
         $type = in_array($config["type"], array_keys($types)) ?  $types[$config["type"]] : $types["FILE"] ;
         $level = in_array(strtoupper($config["level"]), $levels) ? strtoupper($config["level"]) : "INFO" ;
-        $destination = empty($config["destination"]) ? $folder.strtolower($level).".log" : ( ( strstr($config["destination"],"/") || strstr($config["destination"],"\\") ) ? $config["destination"] : $folder.$config["destination"].".log");   
+        $destination = empty($config["destination"]) ? $folder.strtolower($level).".log" : ((strstr($config["destination"],"/") || strstr($config["destination"],"\\")) ? $config["destination"] : $folder.$config["destination"].".log");   
         $extra = $config["extra"];
         
         
@@ -758,22 +759,22 @@ class Pithy{
         $logger = self::load("logger", false);         
 
         // 执行内部日志处理程序
-        if( ( !is_object($logger) || $force ) && ( PITHY_DEBUG || self::config("App.Log.Level") || in_array($level, self::config("App.Log.Level")) ) ){
+        if ((!is_object($logger) || $force) && (PITHY_DEBUG || self::config("App.Log.Level") || in_array($level, self::config("App.Log.Level")))){
 
             // 拼接最终日志内容(如果已经拼接好，则不需拼接)，并放入全局公共属性中
             $msg = $message;
             !preg_match("/^[\d]{4}/", $msg) && $msg = "{$now} [{$level}] {$msg}";    
             array_push($data, $msg);               
-            count( $data ) <= 1000 || array_slice($data, -1000); 
+            count($data) <= 1000 || array_slice($data, -1000); 
 
             // 文件类型的日志记录预处理
-            if( $type == $types["FILE"] ){ 
-                if( !is_dir($folder) && ( @mkdir($folder, 0777, true) == false || @chmod($folder, 0777) == false ) ){
+            if ($type == $types["FILE"]){ 
+                if (!is_dir($folder) && (@mkdir($folder, 0777, true) == false || @chmod($folder, 0777) == false)){
                     array_push($data, "$now [ALERT] Can not mkdir($folder)!");
                     return;        
                 }
-                if( is_file($destination) && floor(self::config("App.Log.Size")) <= filesize($destination) ){
-                    extract( pathinfo($destination) );
+                if (is_file($destination) && floor(self::config("App.Log.Size")) <= filesize($destination)){
+                    extract(pathinfo($destination));
                     @rename($destination, $dirname.DIRECTORY_SEPARATOR.$basename."_".time().".".$extension);
                 }                  
             }
@@ -783,12 +784,12 @@ class Pithy{
         }
 
         // 执行外部日志处理程序 (如果定义了外部的日志处理程序并且没有强制使用内部的，则使用外部日志处理程序来处理日志)
-        if( is_object($logger) && !$force ){
+        if (is_object($logger) && !$force){
             $args = array(
                 "message" => $message,
                 "level" => $level,
                 "category" => "Pithy.Extend.".basename($destination, ".log"),                     
-            );            
+           );            
             return call_user_func_array($logger, array($args)); 
         }                                 
     }   
@@ -796,7 +797,7 @@ class Pithy{
     // 错误处理
     static public function error(){      
 
-        if( 4 > func_num_args() )
+        if (4 > func_num_args())
             return;
 
         $params = func_get_args();
@@ -808,7 +809,7 @@ class Pithy{
 
 
         // 是否终止执行，并输出错误
-        $halt = true;
+        $halt = false;
 
         // 错误类型
         $type = "error"; 
@@ -817,7 +818,6 @@ class Pithy{
         switch ($errno) {
             case E_NOTICE:
             case E_USER_NOTICE:
-                $halt = false;
                 $type = "notice";
                 break;
             case E_WARNING:
@@ -826,6 +826,7 @@ class Pithy{
                 break;
             case E_ERROR:
             case E_USER_ERROR:
+                $halt = true;
                 $type = "error";
                 break;
             default:
@@ -840,25 +841,24 @@ class Pithy{
         array_push(self::$bug, $bug);
 
         // 记录错误 
-        $info = $errfile."(".$errline.") -=> ".( (PITHY_DEBUG || self::config("App.Error.Trace")) ? $bug : $msg );
+        $info = $errfile."(".$errline.") -=> ".((PITHY_DEBUG || self::config("App.Error.Trace")) ? $bug : $msg);
 
-        if( isset($params[4]) && !empty($params[4]) && ( PITHY_DEBUG || self::config("App.Error.Trace") ) ){
+        if (isset($params[4]) && !empty($params[4]) && (PITHY_DEBUG || self::config("App.Error.Trace"))){
             $param = array_slice($params[4], 0, 10);                
-            @array_walk($param, create_function('&$v,$k','if( is_array($v) ){ $v = "<ARRAY>".count($v); } if( is_object($v) ){ $v = "<OBJECT>".get_class($v); } if( is_resource($v) ){ $v = "<RESOURCE>".get_resource_type($v); }'));
+            @array_walk($param, create_function('&$v,$k','if (is_array($v)){ $v = "<ARRAY>".count($v); } if (is_object($v)){ $v = "<OBJECT>".get_class($v); } if (is_resource($v)){ $v = "<RESOURCE>".get_resource_type($v); }'));
             //$info .= " ".PHP_EOL."-------------------------------".PHP_EOL.var_export($param, true);
         }            
 
-        if( self::config("App.Error.Log") ) 
+        if (self::config("App.Error.Log")) 
             self::log($info, array("destination" => "pithy_".$type/*."_".basename($errfile)*/, "level" => strtoupper($type)), true);
 
         // 输出错误
-        if( $halt ){
-            if( !PITHY_DEBUG && self::config("App.Error.Display") == false ){ 
-                ob_clean();
-                echo self::config("App.Error.Message");
-                exit;
-            }
-            self::halt($info);
+        if ($halt){
+            if (PITHY_DEBUG || self::config("App.Error.Display"))
+                return self::halt($info);
+            ob_clean();
+            echo self::config("App.Error.Message");
+            exit;
         }
     } 
 
@@ -871,10 +871,10 @@ class Pithy{
         $traces=array();
 
         $keys = array("message", "code", "file", "line", "trace");
-        foreach( $e as $k=>$v ){
-            foreach( $keys as $key ){
-                if( strstr($k, $key) <> "" ){
-                    if( $key == "trace" )
+        foreach($e as $k=>$v){
+            foreach($keys as $key){
+                if (strstr($k, $key) <> ""){
+                    if ($key == "trace")
                         //$traces+=$v;
                         $traces = $v;
                     else
@@ -897,17 +897,17 @@ class Pithy{
         array_push(self::$bug, $bug);            
 
         // 记录错误 
-        $info = $trace["file"]."(".$trace["line"].") -=> ".( (PITHY_DEBUG || self::config("App.Error.Trace")) ? $bug : $msg );
-        if( self::config("App.Error.Log") ) 
+        $info = $trace["file"]."(".$trace["line"].") -=> ".((PITHY_DEBUG || self::config("App.Error.Trace")) ? $bug : $msg);
+        if (self::config("App.Error.Log")) 
             self::log($info, array("destination"=> "pithy_exception"/*."_".basename($trace["file"])*/, "level"=>"ALERT"), true);    
 
         // 输出异常
-        if( !PITHY_DEBUG && self::config("App.Error.Display") == false ){ 
-            ob_clean();
-            echo self::config("App.Error.Message");
-            exit;
-        }
-        self::halt($info);
+        if (PITHY_DEBUG || self::config("App.Error.Display"))
+            return self::halt($info);
+
+        ob_clean();
+        echo self::config("App.Error.Message");
+        exit;
     }  
 
 
@@ -925,11 +925,11 @@ class Pithy{
      */
     static public function exists(&$filepath){
         
-        if( empty($filepath) ) return false;
+        if (empty($filepath)) return false;
 
         // 将 filepath 转换成真实路径            
-        if( in_array($filepath[0], array("#","~")) && ( !isset($filepath[1]) || in_array($filepath[1], array(".","/","\\")) ) ){
-            if( isset($filepath[1]) && $filepath[1] == "." )
+        if (in_array($filepath[0], array("#","~")) && (!isset($filepath[1]) || in_array($filepath[1], array(".","/","\\")))){
+            if (isset($filepath[1]) && $filepath[1] == ".")
                 $filepath = str_replace(".", "/", $filepath);
             $filepath = str_replace(array("#","~"), array(PITHY_SYSTEM,PITHY_APPLICATION), $filepath);
         }
@@ -937,7 +937,7 @@ class Pithy{
                      
         // 在之前保存的数据缓存中，判断文件是否存在
         static $data = array();        
-        if( !PITHY_DEBUG && is_array($data) && isset($data[$filepath]) ){
+        if (!PITHY_DEBUG && is_array($data) && isset($data[$filepath])){
             return $data[$filepath];
         }
 
@@ -956,12 +956,12 @@ class Pithy{
      * @return mixed
      */
     static public function merge($a, $b){
-        foreach( $b as $k => $v ){
-            if( isset($a[$k]) ){
-                if( is_scalar($v) && is_scalar($a[$k]) ){
+        foreach($b as $k => $v){
+            if (isset($a[$k])){
+                if (is_scalar($v) && is_scalar($a[$k])){
                     is_integer($k) ? $a[] = $v : $a[$k] = $v;                    
                 }    
-                elseif( is_array($v) && is_array($a[$k]) ){
+                elseif (is_array($v) && is_array($a[$k])){
                     $a[$k] = self::merge($a[$k], $v);    
                 }  
             } 
@@ -986,27 +986,27 @@ class Pithy{
         static $data = array();             
 
         // 无参数时获取所有
-        if( empty($name) ) 
+        if (empty($name)) 
             return $data; 
 
         // 批量设置
-        if( is_array($name) )
+        if (is_array($name))
             return $data = $value === true ? $name : self::merge($data, $name);
     
         // 执行设置获取或赋值，支持 . 操作 
-        if( is_string($name) ){                
+        if (is_string($name)){                
             
             $arr = explode('.', $name);
             
-            if( count($arr) == 1 ){
-                if( PITHY_RANDOM === $value )
-                    return isset( $data[$name] ) ? $data[$name] : null;
+            if (count($arr) == 1){
+                if (PITHY_RANDOM === $value)
+                    return isset($data[$name]) ? $data[$name] : null;
                 return $data[$name] = $value;    
             }
              
             $key = array_pop($arr);
             $str = implode(".", $arr); 
-            if( PITHY_RANDOM === $value ){
+            if (PITHY_RANDOM === $value){
                 $result = self::config($str);
                 return !empty($result) && isset($result[$key]) ? $result[$key] : null;
             }
@@ -1033,11 +1033,11 @@ class Pithy{
         $filename = $folder.DIRECTORY_SEPARATOR.$key.".php";  
         
         // 获取缓存（如果 $value 为默认值）
-        if( PITHY_RANDOM === $value )
+        if (PITHY_RANDOM === $value)
             return is_file($filename) ? @include($filename) : null ;
 
         // 设置缓存
-        if( !is_null($value) ){
+        if (!is_null($value)){
             @mkdir($folder, 0755, true);
             return @file_put_contents($filename, "<?php".PHP_EOL."return ".var_export($value, true).";".PHP_EOL."?>");
         }
@@ -1065,12 +1065,12 @@ class Pithy{
             'expire' => self::config('App.Cookie.Expire'), // cookie 保存时间
             'path'   => self::config('App.Cookie.Path'),   // cookie 保存路径
             'domain' => self::config('App.Cookie.Domain'), // cookie 有效域名
-        );
+       );
         // 参数设置(会覆盖黙认设置)
-        if( !empty($option) ) {
-            if( is_numeric($option) )
+        if (!empty($option)) {
+            if (is_numeric($option))
                 $option = array('expire'=>$option);
-            elseif( is_string($option) )
+            elseif (is_string($option))
                 parse_str($option,  $option);
             $config = self::merge($config, array_change_key_case($option));
         }
@@ -1079,14 +1079,14 @@ class Pithy{
         list($a, $b) = explode(".", strrev($domain));
 
         $prefix =  !empty($config["prefix"]) ? $config["prefix"] : str_replace(".", "_", $domain);        
-        $expire = is_null($value) ? time()-3600 : ( intval($config["expire"]) > 0 ? time()+intval($config["expire"]) : 0 );
+        $expire = is_null($value) ? time()-3600 : (intval($config["expire"]) > 0 ? time()+intval($config["expire"]) : 0);
         $path = !empty($config["path"]) ? $config["path"] : "/";
         $domain = !empty($config["domain"]) ? $config["domain"] : strrev("$a.$b"); 
 
 
         // 获取 cookie
-        if( !is_null($value) && $value === PITHY_RANDOM ){
-            if( strstr($name,".") <> "" ){
+        if (!is_null($value) && $value === PITHY_RANDOM){
+            if (strstr($name,".") <> ""){
                 $key = "_COOKIE['".$prefix."']['".str_replace(".","']['",$name)."']";
                 $key_root = "_COOKIE['".$prefix."']";
                 $key_parent = substr($key, 0, strrpos($key,"["));
@@ -1100,19 +1100,19 @@ class Pithy{
 
 
         // 初始化，删除 cookie 、整理 value
-        if( $init ){ 
+        if ($init){ 
 
             // 删除 cookie
-            if( is_null($value) ){
+            if (is_null($value)){
 
                 $_cookie = self::cookie($name);
                 //echo "<xmp>".print_r($_cookie,true)."</xmp>";
 
                 // 值为 null 的 cookie 直接返回
-                if( !is_null($_cookie) ){ 
+                if (!is_null($_cookie)){ 
 
                     // 值为非数组型的 cookie 直接赋值（删除）；否则进行整理（数组型 cookie 无法一次删除，需将所有 value 设置成 null），然后通过赋值的方式删除            
-                    if( !is_array($_cookie) ){
+                    if (!is_array($_cookie)){
                         self::cookie($name, null, null, false);                    
                     }
                     else{
@@ -1126,7 +1126,7 @@ class Pithy{
 
             // 整理 value            
             $root = strstr($name,".") <> "" ? substr($name, 0, strpos($name,".")) : $name; // 根节点
-            if( $root <> $name ){
+            if ($root <> $name){
                 $$root = array();
                 $key = $root."['".str_replace(".","']['",substr(strstr($name,"."),1))."']";
                 eval("$".$key."=$"."value;");                                
@@ -1143,7 +1143,7 @@ class Pithy{
         // 设置 cookie
 
         // 如果需要赋值的变量为数组，则将数组分解分别赋值
-        if( is_array($value) ){
+        if (is_array($value)){
             foreach($value as $k=>$v){                
                 self::cookie($name.".".$k, $v, $option, false);                
             }
@@ -1151,7 +1151,7 @@ class Pithy{
         }
 
         // 如果之前的 cookie 为数组，则先清空再赋值
-        if( is_array(self::cookie($name) )){
+        if (is_array(self::cookie($name))){
             self::cookie($name, null, null, true);
         }            
 
@@ -1160,12 +1160,12 @@ class Pithy{
         //echo $rtn;
 
         // 设置 $_COOKIE 变量
-        if( !isset($_COOKIE[$prefix]) ){
+        if (!isset($_COOKIE[$prefix])){
             $_COOKIE[$prefix] = array();    
         }
-        if( strstr($name, ".") == ""){
+        if (strstr($name, ".") == ""){
             // 根节点赋值 
-            if( is_null($value) ){
+            if (is_null($value)){
                 unset($_COOKIE[$prefix][$name]);
             }
             else{
@@ -1178,7 +1178,7 @@ class Pithy{
             $key_parent = substr($key,0,strrpos($key,"["));
             $name_parent = substr($name,0,strrpos($name,"."));
             //echo "$key -> $key_parent ->$name_parent";
-            if( is_null($value) ){                    
+            if (is_null($value)){                    
                 eval("if(is_array($".$key_parent.")){unset($".$key.");};");
                 eval("if(empty($".$key_parent.")){self::cookie('$name_parent',null,null,false);}");
             }
@@ -1197,15 +1197,15 @@ class Pithy{
     static public function halt($msg){ 
     
         // 如果不是字符串则转换
-        if( !is_string($msg) ){
+        if (!is_string($msg)){
             $msg = self::dump($msg, false);
         }
 
         // 显示要输出的内容
-        if( !IS_CLI ){
+        if (!IS_CLI){
 
             // 如果没有发送头部，则发送编码
-            if( !headers_sent() )
+            if (!headers_sent())
                 header("Content-type: text/html; charset=utf-8");
 
             $dbg = self::debug();
@@ -1216,7 +1216,7 @@ class Pithy{
             $msg = "<div style='position:fixed;top:10%;left:10%;width:78%;height:78%;padding:1%;background:#000;border-radius:10px;color:#999;font-size:14px;line-height:24px;opacity:0.8;overflow:auto;'>".$msg."</div>";  
         }
         
-        if( IS_CLI && IS_WIN )
+        if (IS_CLI && IS_WIN)
             $msg = mb_convert_encoding($msg, "gbk", "utf-8")."\r\n\r\n";
 
         echo $msg;
@@ -1234,11 +1234,11 @@ class Pithy{
         
         // 多行URL地址支持
         $url = str_replace(array("\n", "\r"), '', $url);
-        if( empty($msg) )
+        if (empty($msg))
             $msg = "系统将在 {$time} 秒之后自动跳转到：<a href='{$url}'>{$url}</a>"; 
 
-        if( !headers_sent() ) {
-            if( 0 === $time) {
+        if (!headers_sent()) {
+            if (0 === $time) {
                 header("Location: {$url}");
             }
             else {
@@ -1248,14 +1248,14 @@ class Pithy{
         }
         else{                                      
 
-            if( $time > 0 and $time < 1 ){
+            if ($time > 0 and $time < 1){
                 $str = "<script language='javascript'>setTimeout(function(){self.location='$url';},".($time*1000).")</script>";
             }
             else{
                 $str = "<meta http-equiv='Refresh' content='{$time};URL={$url}'>";
             }
 
-            if( $time != 0 )
+            if ($time != 0)
                 $str .= $msg;
 
             echo($str);
@@ -1274,23 +1274,23 @@ class Pithy{
      */
     static public function execute($bin, $args=array(), $asyn=true){  
         
-        if( self::config("App.Execute.Enable") != true )
+        if (self::config("App.Execute.Enable") != true)
             return false;
             
         $args = is_string($args) ? array($args) : $args;
             
-        if( self::config("App.Execute.SafeMode") == true ){
+        if (self::config("App.Execute.SafeMode") == true){
             
             $list = self::config("App.Execute.Alias");
-            if( !is_array($list) || !isset($list[$bin]) )
+            if (!is_array($list) || !isset($list[$bin]))
                 return false;
             
             // 检查参数中是否包含非法字符
-            if( array_reduce( array_values($args), create_function('$r, $v', 'return $r || preg_match("/(#|&|\<|\>|\|)/", $v);'), false ) )
+            if (array_reduce(array_values($args), create_function('$r, $v', 'return $r || preg_match("/(#|&|\<|\>|\|)/", $v);'), false))
                 return false;            
             
             // 替换参数变量
-            if( !empty($args) )    
+            if (!empty($args))    
                 array_walk($args, create_function('&$v, $k, $str', '$str = str_replace("{".$k."}", $v, $str);'), $list[$bin]);    
         
             $cmd = $list[$bin];
@@ -1299,16 +1299,16 @@ class Pithy{
             $cmd = $bin." ".explode(" ", array_values($args));
         } 
         
-        $log = PITHY_DEBUG ? PITHY_PATH_RUNTIME."temp".DIRECTORY_SEPARATOR."execute_".basename($bin).".log" : ( IS_WIN ? "nul" : "/dev/null" );
+        $log = PITHY_DEBUG ? PITHY_PATH_RUNTIME."temp".DIRECTORY_SEPARATOR."execute_".basename($bin).".log" : (IS_WIN ? "nul" : "/dev/null");
         $cmd = "{$cmd} 1>>{$log} 2>&1";            
         self::log($cmd, "execute_".basename($bin));
                           
-        if( !$asyn ){
+        if (!$asyn){
             passthru($cmd, $rtn);
             return !$rtn;
         }
         $cmd = IS_WIN ? 'start cmd /c "'.$cmd.'" ' : "nohup ".$cmd." &";
-        return !pclose( popen($cmd, "r") );
+        return !pclose(popen($cmd, "r"));
     }    
 
 }
