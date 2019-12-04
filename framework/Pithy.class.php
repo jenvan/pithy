@@ -4,7 +4,7 @@
 // +----------------------------------------------------------------------
 // | Copyright (c) 2010 http://pithy.cn All rights reserved.
 // +----------------------------------------------------------------------
-// | Licensed (http://www.apache.org/licenses/LICENSE-2.0 )
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
 // | Author: jenvan <jenvan@pithy.cn>
 // +----------------------------------------------------------------------
@@ -21,7 +21,7 @@ define("PITHY_TIME", microtime(true));
 // 定义随机值
 define("PITHY_RANDOM", "R_".PITHY_TIME."_".mt_rand()); 
     
-// 定义运行模式： lite | extend | cli | mvc | rest
+// 定义运行模式： lite | extend | custom | cli | mvc
 defined("PITHY_MODE") || define("PITHY_MODE", "lite");
 
 // 定义系统相关常量
@@ -75,9 +75,9 @@ class Pithy{
         }
 
         // cli mvc rest 模式
-        if (in_array(PITHY_MODE, array("cli", "mvc", "rest"))){ 
+        if (in_array(PITHY_MODE, array("custom", "cli", "mvc"))){ 
             
-            if (in_array(PITHY_MODE, array("mvc", "rest"))){
+            if (PITHY_MODE == "mvc"){
                 // 使用 ob 控制                
                 ob_start();
                 
@@ -198,7 +198,7 @@ class Pithy{
      */
     static protected function exec(){
 
-        if (!in_array(PITHY_MODE, array("cli", "mvc", "rest")))
+        if (!in_array(PITHY_MODE, array("custom", "cli", "mvc")))
             return;
 
         // 加载基础核心配置        
@@ -214,15 +214,20 @@ class Pithy{
         self::import("~.extend.*");
         
         
-        /* CLI 模式 */ 
-        if (PITHY_MODE == "cli"){
-            Command::singleton()->call();            
+        /* custom 模式 */ 
+        if (PITHY_MODE == "custom"){
             return;
         }
         
         
-
-        /* MVC 和 REST 模式 按下列流程顺序执行 */
+        /* cli 模式 */ 
+        if (PITHY_MODE == "cli"){
+            Command::singleton()->call();
+            return;
+        }
+        
+        
+        /* mvc 模式 按下列流程顺序执行 */
 
         /***********************************/ 
         // 钩子 
@@ -603,16 +608,21 @@ class Pithy{
         
         $str = "";
         foreach ($args as $arg){
-            $str .= " ". print_r($arg, true);
+            $str .= print_r($arg, true)." ";
         }
         $data[] = $str;
         
-        if (!Pithy::config("App.Debug"))
+        if (!PITHY_DEBUG)
             return;
+        
+        if (IS_CLI){
+            echo IS_WIN ? mb_convert_encoding($str, "gbk", "utf-8")."\r\n" : $str."\n";
+            return;
+        }
         
         try {
             $handle = stream_socket_client("udp://255.255.255.255:9527", $errno, $errstr);
-            //fwrite($handle, "--------------------------------------------------------------------------------\n");
+            fwrite($handle, "\n");
             for ($i = 0; $i < strlen($str); $i = $i + 100){
                 fwrite($handle, substr($str, $i, 100));
             }
@@ -701,14 +711,16 @@ class Pithy{
         // 如果日志内容为空，则表示返回之前记录的所有日志内容
         if (empty($message))
             return $data; 
-
+        
+        !is_string($message) && $message = print_r($message, true);
+        
         // 支持的日志记录类型
         $types = array(
             "SYSTEM" => 0,
             "MAIL" => 1,
             "TCP" => 2,
             "FILE" => 3,
-       );
+        );
 
         // 支持的日志记录级别
         $levels = array(
@@ -718,31 +730,37 @@ class Pithy{
             "NOTICE",
             "INFO",
             "DEBUG",
-       );
+        );
 
         // 默认的日志设置参数
         $config = array(
-            "type" => "FILE",         // 日志记录类型
-            "level" => "INFO",        // 日志记录级别
-            "destination" => "common",// 日志记录位置  PITHY_PATH_RUNTIME/log/Ymd/common.log
-            "extra" => "",            // 日志扩展信息（日志记录类型为 MAIL 和 TCP 时使用，参见 error_log 函数)
-       ); 
+            "type" => 3,            // 日志记录类型
+            "level" => "INFO",      // 日志记录级别
+            "destination" => "",    // 日志记录位置  {PITHY_PATH_RUNTIME}/log/Ymd/{$level}.log
+            "extra" => "",          // 日志扩展信息（日志记录类型为 MAIL 和 TCP 时使用，参见 error_log 函数)
+        );        
 
-        // 参数是数字时，设置日志记录类型
-        if (is_int($options))
-            $config["type"] = $options;            
-
-        // 参数是字符串时，设置日志记录级别或位置
-        if (is_string($options)){
-            if (in_array(strtoupper($options), $levels))
-                $config["level"] = strtoupper($options); 
-            else
-                $config["destination"] = $options;
+        // 参数是布尔时，是否强制调用 debug
+        if (is_bool($options)){
+            $force = $options;
+            $options = null;
         }
 
-        // 参数是数组时，将其同默认参数合并
-        if (is_array($options))
-            $config = self::merge($config, $options);
+        // 合并参数
+        !is_array($options) && $options = array($options);
+        foreach ($options as $v){
+            // 参数是数字时，设置日志记录类型
+            if (is_int($v))
+                $config["type"] = $v;
+
+            // 参数是字符串时，设置日志记录级别或位置
+            if (is_string($v)){
+                if (in_array(strtoupper($v), $levels))
+                    $config["level"] = strtoupper($v); 
+                else
+                    $config["destination"] = $v;
+            }
+        }
 
         // 设置相关变量            
         $folder = PITHY_PATH_RUNTIME.DIRECTORY_SEPARATOR."log".DIRECTORY_SEPARATOR.date('Ymd').DIRECTORY_SEPARATOR;
@@ -751,20 +769,20 @@ class Pithy{
         // 最终的日志参数
         $type = in_array($config["type"], array_keys($types)) ?  $types[$config["type"]] : $types["FILE"] ;
         $level = in_array(strtoupper($config["level"]), $levels) ? strtoupper($config["level"]) : "INFO" ;
-        $destination = empty($config["destination"]) ? $folder.strtolower($level).".log" : ((strstr($config["destination"],"/") || strstr($config["destination"],"\\")) ? $config["destination"] : $folder.$config["destination"].".log");   
+        $destination = empty($config["destination"]) ? $folder."pithy.".strtolower($level).".log" : ((strstr($config["destination"],"/") || strstr($config["destination"],"\\")) ? $config["destination"] : $folder.$config["destination"].".log");   
         $extra = $config["extra"];
         
         
         // 获取 logger
-        $logger = self::load("logger", false);         
+        $logger = self::load("logger", false);
 
         // 执行内部日志处理程序
         if ((!is_object($logger) || $force) && (PITHY_DEBUG || self::config("App.Log.Level") || in_array($level, self::config("App.Log.Level")))){
 
             // 拼接最终日志内容(如果已经拼接好，则不需拼接)，并放入全局公共属性中
             $msg = $message;
-            !preg_match("/^[\d]{4}/", $msg) && $msg = "{$now} [{$level}] {$msg}";    
-            array_push($data, $msg);               
+            !preg_match("/^[\d]{4}\-[\d]{2}\-[\d]{2}/", $msg) && $msg = "{$now} [{$level}] {$msg}";    
+            array_push($data, $msg);
             count($data) <= 1000 || array_slice($data, -1000); 
 
             // 文件类型的日志记录预处理
@@ -776,11 +794,13 @@ class Pithy{
                 if (is_file($destination) && floor(self::config("App.Log.Size")) <= filesize($destination)){
                     extract(pathinfo($destination));
                     @rename($destination, $dirname.DIRECTORY_SEPARATOR.$basename."_".time().".".$extension);
-                }                  
+                }
             }
 
             // 调用 php 自带的日志记录函数
             error_log($msg.PHP_EOL, $type, $destination, $extra);
+            
+            $force && self::debug($msg);
         }
 
         // 执行外部日志处理程序 (如果定义了外部的日志处理程序并且没有强制使用内部的，则使用外部日志处理程序来处理日志)
@@ -789,7 +809,7 @@ class Pithy{
                 "message" => $message,
                 "level" => $level,
                 "category" => "Pithy.Extend.".basename($destination, ".log"),                     
-           );            
+            );            
             return call_user_func_array($logger, array($args)); 
         }                                 
     }   
@@ -830,18 +850,17 @@ class Pithy{
                 $type = "error";
                 break;
             default:
-                $type = "alert";                                                                                                 
+                $type = "alert";
                 break;
         }
 
-        $msg = $errstr;            
+        $msg = $errstr;
 
         // 调试错误
-        $bug = self::trace($msg, debug_backtrace()); 
-        array_push(self::$bug, $bug);
+        (PITHY_DEBUG || self::config("App.Error.Trace")) && $msg = self::trace($msg, debug_backtrace()); 
 
         // 记录错误 
-        $info = $errfile."(".$errline.") -=> ".((PITHY_DEBUG || self::config("App.Error.Trace")) ? $bug : $msg);
+        $info = $errfile."(".$errline.") -=> ".$msg;
 
         if (isset($params[4]) && !empty($params[4]) && (PITHY_DEBUG || self::config("App.Error.Trace"))){
             $param = array_slice($params[4], 0, 10);                
@@ -850,7 +869,7 @@ class Pithy{
         }            
 
         if (self::config("App.Error.Log")) 
-            self::log($info, array("destination" => "pithy_".$type/*."_".basename($errfile)*/, "level" => strtoupper($type)), true);
+            self::log($info, array("destination" => basename(basename($errfile, ".php"), ".class").".error", "level" => strtoupper($type)), true);
 
         // 输出错误
         if ($halt){
@@ -893,13 +912,12 @@ class Pithy{
         $msg = $trace["message"]; 
 
         // 调试异常              
-        $bug = self::trace($msg, $traces); 
-        array_push(self::$bug, $bug);            
+        (PITHY_DEBUG || self::config("App.Error.Trace")) && $msg = self::trace($msg, $traces);
 
         // 记录错误 
-        $info = $trace["file"]."(".$trace["line"].") -=> ".((PITHY_DEBUG || self::config("App.Error.Trace")) ? $bug : $msg);
+        $info = $trace["file"]."(".$trace["line"].") -=> ".$msg;
         if (self::config("App.Error.Log")) 
-            self::log($info, array("destination"=> "pithy_exception"/*."_".basename($trace["file"])*/, "level"=>"ALERT"), true);    
+            self::log($info, array("destination"=> basename(basename($trace["file"], ".php"), ".class").".exception", "level"=>"ALERT"), true);    
 
         // 输出异常
         if (PITHY_DEBUG || self::config("App.Error.Display"))
@@ -1065,7 +1083,7 @@ class Pithy{
             'expire' => self::config('App.Cookie.Expire'), // cookie 保存时间
             'path'   => self::config('App.Cookie.Path'),   // cookie 保存路径
             'domain' => self::config('App.Cookie.Domain'), // cookie 有效域名
-       );
+        );
         // 参数设置(会覆盖黙认设置)
         if (!empty($option)) {
             if (is_numeric($option))
@@ -1296,13 +1314,13 @@ class Pithy{
             $cmd = $list[$bin];
         }
         else{
-            $cmd = $bin." ".explode(" ", array_values($args));
+            $cmd = $bin." ".implode(" ", array_values($args));
         } 
         
-        $log = PITHY_DEBUG ? PITHY_PATH_RUNTIME."temp".DIRECTORY_SEPARATOR."execute_".basename($bin).".log" : (IS_WIN ? "nul" : "/dev/null");
-        $cmd = "{$cmd} 1>>{$log} 2>&1";            
+        $log = IS_WIN ? "nul" : "/dev/null";
+        !PITHY_DEBUG && $cmd = "{$cmd} 1>>{$log} 2>&1";
         self::log($cmd, "execute_".basename($bin));
-                          
+        
         if (!$asyn){
             passthru($cmd, $rtn);
             return !$rtn;

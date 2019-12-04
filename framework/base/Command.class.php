@@ -171,8 +171,8 @@ class Command extends PithyBase {
         if (method_exists($this, $actionName)){
 
             $GLOBALS["pithy_log_name"] = get_class($this).( $this->alone ? "_".$action : "");
-            is_array( $GLOBALS["pithy_logs"]) || $GLOBALS["pithy_logs"] = array();
-            is_array( $GLOBALS["pithy_traces"]) || $GLOBALS["pithy_traces"] = array(); 
+            is_array($GLOBALS["pithy_logs"]) || $GLOBALS["pithy_logs"] = array();
+            is_array($GLOBALS["pithy_traces"]) || $GLOBALS["pithy_traces"] = array(); 
             
             
             $actionName = "action".ucfirst($action);
@@ -191,7 +191,7 @@ class Command extends PithyBase {
         if (method_exists($this, "_miss"))  
             return $this->_miss($action); 
         
-        return $this->help( substr(get_class($this), 0, strlen("Command")*-1));
+        return $this->help(substr(get_class($this), 0, strlen("Command")*-1));
     }
         
     /**
@@ -206,7 +206,7 @@ class Command extends PithyBase {
         if (empty($command)){
             if (!isset($_SERVER["argv"][1]))
                 return $this->help();
-            $command = $_SERVER["argv"][1];            
+            $command = $_SERVER["argv"][1];
             if (!isset($_SERVER["argv"][2]))
                 return $this->help($command);
             $action = $_SERVER["argv"][2];
