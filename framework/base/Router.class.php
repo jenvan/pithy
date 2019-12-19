@@ -23,7 +23,7 @@
 class Router extends PithyBase {
 
     public $mode = "";
-    public $groups = "";          
+    public $groups = array();
 
     private $_file;
     private $_controller;
@@ -37,7 +37,7 @@ class Router extends PithyBase {
 
         // 获取配置
         $this->mode = Pithy::config("Router.mode");
-        $this->groups = array_keys(Pithy::config("Router.groups"));  
+        $this->groups = array_keys(Pithy::config("Router.groups"));
 
         // 获取 url
         $url = $_SERVER["REQUEST_URI"];
@@ -84,18 +84,18 @@ class Router extends PithyBase {
         $host = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
         $groups = Pithy::config("Router.groups");
         foreach ($groups as $group => $list){
-            if ($this->_group == $group || (is_array($list) && in_array($host, $list))){
+            if (is_array($list) && in_array($host, $list)){
                 $this->_group = $group;
                 break;
             }
         }      
-        if( empty($this->_group) )
+        if (empty($this->_group))
             $this->_group = Pithy::config("Router.default.group");
         return $this->_group;
     }
     
     public function getModule(){
-        if( empty($this->_module) )
+        if (empty($this->_module))
             $this->_module = Pithy::config("Router.default.module");
         return $this->_module;
     }
@@ -103,13 +103,13 @@ class Router extends PithyBase {
  
         
     public function getAction(){
-        if( empty($this->_action) )
+        if (empty($this->_action))
             $this->_action = Pithy::config("Router.default.action");
         return $this->_action;  
     }  
 
     public function getParams(){
-        if( !is_array($this->_params) )
+        if (!is_array($this->_params))
             $this->_params = array();
         return Pithy::merge($this->_params, $_POST);
     }
@@ -136,38 +136,38 @@ class Router extends PithyBase {
 
         // 通过 get 方式获取 route
         $arr = parse_url($path);
-        if( !empty($arr["query"]) ){
+        if (!empty($arr["query"])){
             parse_str($arr["query"], $query);
-            if( isset($query["r"]) )
+            if (isset($query["r"]))
                 $route = $query["r"];
         } 
 
         // 剔除
-        if( !empty($route) ){
-            $route = ltrim($route, "/");            
+        if (!empty($route)){
+            $route = ltrim($route, "/");
         }
 
         // 分解
-        if( !empty($route) ){
+        if (!empty($route)){
 
             // 分割
             $arr = explode("/", rtrim($route, "/"));
 
             // 获取 group
-            if( count($arr) >= 1 && in_array($arr[0], $this->groups) ){
+            if (count($arr) >= 1 && in_array($arr[0], $this->groups)){
                 $group = $arr[0];
                 unset($arr[0]);
                 $arr = array_values($arr);
             }
 
             // 获取 module 和 action
-            if( count($arr) >= 2 ){
+            if (count($arr) >= 2){
                 $module = $arr[0];
                 $action = $arr[1];
                 unset($arr[0]);
                 unset($arr[1]);
             }
-            elseif( count($arr)==1 ){
+            elseif (count($arr) == 1){
                 if (strpos($route, "/") !== false)
                     $module = $arr[0];
                 else
@@ -179,8 +179,8 @@ class Router extends PithyBase {
 
             // 获取 params
             $len = count($arr);
-            for( $i=0; $i<$len; $i=$i+2 ){
-                $params[$arr[$i]] = ($i+1<$len) ? $arr[$i+1] : "";                
+            for ($i=0; $i<$len; $i=$i+2){
+                $params[$arr[$i]] = ($i+1<$len) ? $arr[$i+1] : "";
             }
 
         }

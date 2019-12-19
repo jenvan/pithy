@@ -318,7 +318,7 @@ class View extends PithyBase {
         
         // 判断参数
         $args = func_get_args();
-        (!is_array($params) || count($params) > 1) && $params = $args;
+        (!is_array($params) || count($args) > 1) && $params = $args;
         foreach($params as $k => $v){
            !isset($params["rtn"]) && is_numeric($v) && $params["rtn"] = $v;
            !isset($params["msg"]) && is_string($v)  && $params["msg"] = $v;

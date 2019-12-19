@@ -121,7 +121,7 @@
             }            
         } 
 
-        static public function change($name) {
+        static public function name($str) {
             if( strstr($str,"_") != "" ){
                 return ucfirst(preg_replace("/_([a-zA-Z])/e", "strtoupper('\\1')", $name));
             }
