@@ -204,6 +204,6 @@ class Router extends PithyBase {
     public function build($route, $params = array()){
         is_array($route) && isset($route["params"]) && $params = $route["params"];
         is_array($route) && $route = "/".(isset($route["group"]) ? $route["group"] : $this->group)."/".(isset($route["module"]) ? $route["module"] : $this->module)."/".(isset($route["action"]) ? $route["action"] : $this->action);
-        return "http://".$_SERVER["HTTP_HOST"] . $route . "?" . http_build_query($params);
+        return preg_replace("/^(\/+)/", "/", $route) . "?" . http_build_query($params);
     }
 }

@@ -1092,15 +1092,14 @@ class Pithy{
                 parse_str($option,  $option);
             $config = self::merge($config, array_change_key_case($option));
         }
-
-        $domain = strtolower($_SERVER["HTTP_HOST"]);
+        
+        $domain = preg_replace("(:\d+)", "", strtolower($_SERVER["HTTP_HOST"]));
         list($a, $b) = explode(".", strrev($domain));
 
-        $prefix =  !empty($config["prefix"]) ? $config["prefix"] : str_replace(".", "_", $domain);        
+        $prefix =  !empty($config["prefix"]) ? $config["prefix"] : str_replace(".", "_", $domain);
         $expire = is_null($value) ? time()-3600 : (intval($config["expire"]) > 0 ? time()+intval($config["expire"]) : 0);
         $path = !empty($config["path"]) ? $config["path"] : "/";
         $domain = !empty($config["domain"]) ? $config["domain"] : strrev("$a.$b"); 
-
 
         // 获取 cookie
         if (!is_null($value) && $value === PITHY_RANDOM){
