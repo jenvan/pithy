@@ -160,7 +160,7 @@ class Mysql extends Database {
         else {
             $this->numRows = mysql_affected_rows($this->linkID);
             $this->lastInsID = mysql_insert_id($this->linkID);
-            return $this->numRows;
+            return max($this->numRows, $this->lastInsID);
         }
     }
 

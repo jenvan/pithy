@@ -62,8 +62,9 @@ class Controller extends PithyBase {
         }
         
         // 条件跳转
-        if (is_object($this->view) && method_exists($this->view, "show") && in_array($method, array('show', 'info', 'message', 'msg', 'succeed', 'failed', 'success', 'failure', 'right', 'error'))){
-            !isset($params["rtn"]) && !isset($params[0]["rtn"]) && !is_int($params[count($params)-1]) && $params["rtn"] = in_array($method, array('failed', 'failure', 'error')) ? 1 : 0;
+        if (is_object($this->view) && method_exists($this->view, "show") && in_array($method, array('show', 'info', 'message', 'msg', 'succeed', 'failed', 'success', 'failure', 'error'))){
+            !(isset($params["rtn"]) || is_int($params[count($params)-1]) || (is_array($params[0]) && isset($params[0]["rtn"]))) && $params["rtn"] = in_array($method, array('failed', 'failure', 'error')) ? 1 : 0;
+            //Pithy::debug("show:", $params);
             return call_user_func_array(array($this->view, "show"), $params);
         }
         
@@ -107,7 +108,9 @@ class Controller extends PithyBase {
      * @return mixed
      +----------------------------------------------------------
      */
-    public function exception($msg){
+    public function exception($msg){ 
+        
+        //Pithy::debug($_SERVER);
     
         // 子类中是否存在 _exception 或 _error 方法，存在则调用
         if (method_exists($this, "_exception"))
@@ -121,7 +124,7 @@ class Controller extends PithyBase {
         }
 
         // 否则触发错误
-        throw new Exception($msg);                                                                 
+        throw new Exception($msg);
     } 
 
     /**         
@@ -133,8 +136,10 @@ class Controller extends PithyBase {
      */
     static public function factory($id){
 
-        $exists = Pithy::import($id);        
+        $exists = Pithy::import($id);
         if (!$exists){
+            header("HTTP/1.0 404 Not Found");
+            Pithy::debug("404 NOT FOUND:", $_SERVER["REQUEST_URI"]);
             Controller::singleton()->exception("控制器 {$id} 不存在！");
         }
         
@@ -283,8 +288,10 @@ class Controller extends PithyBase {
         
 
         // 动作不存在
-        if (method_exists($this, "_miss"))   
-            return $this->_miss($action, $params);         
+        if (method_exists($this, "_miss")){
+            header("HTTP/1.0 404 Not Found");
+            return $this->_miss($action, $params);
+        }
         
         return $this->exception('控制器 '.get_class($this).' 的动作 '.$action.' 不存在！');
     }

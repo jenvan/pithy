@@ -40,10 +40,8 @@ class Pithy{
     static public $inputer = null;
     static public $outputer = null;
 
-    static public $bug = array();
-
-    static private $_alias = array();                                             
-    static private $_object = array();     
+    static private $_alias = array();
+    static private $_object = array();
     
     
     /**
@@ -868,7 +866,7 @@ class Pithy{
             //$info .= " ".PHP_EOL."-------------------------------".PHP_EOL.var_export($param, true);
         }            
 
-        if (self::config("App.Error.Log")) 
+        if (self::config("App.Error.Log"))
             self::log($info, array("destination" => basename(basename($errfile, ".php"), ".class").".error", "level" => strtoupper($type)), true);
 
         // 输出错误
@@ -916,8 +914,8 @@ class Pithy{
 
         // 记录错误 
         $info = $trace["file"]."(".$trace["line"].") -=> ".$msg;
-        if (self::config("App.Error.Log")) 
-            self::log($info, array("destination"=> basename(basename($trace["file"], ".php"), ".class").".exception", "level"=>"ALERT"), true);    
+        if (self::config("App.Error.Log"))
+            self::log($info, array("destination"=> basename(basename($trace["file"], ".php"), ".class").".exception", "level"=>"ALERT"), true);
 
         // 输出异常
         if (PITHY_DEBUG || self::config("App.Error.Display"))
@@ -951,7 +949,7 @@ class Pithy{
                 $filepath = str_replace(".", "/", $filepath);
             $filepath = str_replace(array("#","~"), array(PITHY_SYSTEM,PITHY_APPLICATION), $filepath);
         }
-        $filepath = str_replace(array("\\","\\\\","//"), array("/","/","/"), $filepath);       
+        $filepath = preg_replace(array("/(\\\\+)/", "/(\/+)/"), array("/", "/"), $filepath);
                      
         // 在之前保存的数据缓存中，判断文件是否存在
         static $data = array();        
@@ -1097,9 +1095,11 @@ class Pithy{
         list($a, $b) = explode(".", strrev($domain));
 
         $prefix =  !empty($config["prefix"]) ? $config["prefix"] : str_replace(".", "_", $domain);
-        $expire = is_null($value) ? time()-3600 : (intval($config["expire"]) > 0 ? time()+intval($config["expire"]) : 0);
+        $expire = is_null($value) ? time()-3600 : (intval($config["expire"]) > 0 ? time() + intval($config["expire"]) : 0);
         $path = !empty($config["path"]) ? $config["path"] : "/";
-        $domain = !empty($config["domain"]) ? $config["domain"] : strrev("$a.$b"); 
+        
+        (!preg_match("/[\d]+\.[\d]+\./", $domain) && strstr($domain, ":") == false) && $domain = strrev("$a.$b");
+        !empty($config["domain"]) && $domain = $config["domain"];
 
         // 获取 cookie
         if (!is_null($value) && $value === PITHY_RANDOM){
@@ -1225,11 +1225,11 @@ class Pithy{
             if (!headers_sent())
                 header("Content-type: text/html; charset=utf-8");
 
-            $dbg = self::debug();
+            $dbg = array_slice(self::debug(), 0, -1);
             $msg = preg_replace("/".PHP_EOL."(#|@)/", PHP_EOL."<b style='color:#33F;'>$1</b>", $msg);
             $msg = "<b style='color:#F33;'>".preg_replace("/".PHP_EOL."/", "</b><pre>", $msg, 1)."</pre>";
             $msg = strstr($msg, "<pre>") <> "" ? $msg : "<pre>".$msg."</pre>";                
-            $msg = count($dbg) == 0 ? $msg : $msg."-------------------------------<pre>".print_r($dbg, true)."</pre>";
+            $msg = count($dbg) == 0 ? $msg : $msg."--------------- DEBUG ---------------<pre>".print_r($dbg, true)."</pre>";
             $msg = "<div style='position:fixed;top:10%;left:10%;width:78%;height:78%;padding:1%;background:#000;border-radius:10px;color:#999;font-size:14px;line-height:24px;opacity:0.8;overflow:auto;'>".$msg."</div>";  
         }
         

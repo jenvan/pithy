@@ -232,7 +232,7 @@ class View extends PithyBase {
                         continue;
                     $attr .=" {$k}='{$v}'";
                 }
-                $code = "<".$item["tag"].$attr."></".$tag.">\r\n";                      
+                $code = "<".$item["tag"].$attr."></".$item["tag"].">\r\n";                      
                 $codes[$item["pos"]][$item["weight"]] = isset($codes[$item["pos"]][$item["weight"]]) ? $codes[$item["pos"]][$item["weight"]].$code : $code; 
             }
             
@@ -331,14 +331,18 @@ class View extends PithyBase {
         !isset($params["data"]) && $params["data"] = array();        
         //Pithy::debug($params);
 
-        // AJAX输出
-        $callback = Pithy::config("View.Show.Ajax");
-        if ((isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && "xmlhttprequest" == strtolower($_SERVER["HTTP_X_REQUESTED_WITH"])) || !empty($_REQUEST[$callback])){
+        // AJAX输出 或 SCRIPT输出（跨域提交、结果通过window.name返回）
+        $callback1 = Pithy::config("View.Show.Ajax");
+        $callback2 = Pithy::config("View.Show.Script");
+        if ((isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && "xmlhttprequest" == strtolower($_SERVER["HTTP_X_REQUESTED_WITH"])) || !empty($_REQUEST[$callback1]) || !empty($_REQUEST[$callback2])){
             krsort($params);
             $content = json_encode($params);
-            if (!empty($_REQUEST[$callback])){
-                $content = $_REQUEST[$callback]."(".$content.");";
-            } 
+            if (!empty($_REQUEST[$callback1])){
+                $content = $_REQUEST[$callback1]."(".$content.");";
+            }
+            if (!empty($_REQUEST[$callback2])){
+                $content = "<script>window.name='".base64_encode($_REQUEST[$callback2]."(".$content.")")."';</script>";
+            }
             echo $content;
             exit;
         }
