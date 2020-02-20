@@ -4,7 +4,7 @@
 // +----------------------------------------------------------------------
 // | Copyright (c) 2010 http://pithy.cn All rights reserved.
 // +----------------------------------------------------------------------
-// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// | Licensed (http://www.apache.org/licenses/LICENSE-2.0)
 // +----------------------------------------------------------------------
 // | Author: jenvan <jenvan@pithy.cn>
 // +----------------------------------------------------------------------
@@ -32,35 +32,28 @@ class Mysql extends Database {
      * @access public
      +----------------------------------------------------------
      */
-    public function connect($config='', $linkNum=0) {
+    public function connect($config = '', $linkNum = 0) {
          
-        if ( !isset($this->links[$linkNum]) ) {
+        if (!isset($this->links[$linkNum])) {
             
-            if( empty($config) )  
-                $config = $this->config;
+            empty($config) && $config = $this->config;
+            if (!isset($config["host"]) || empty($config["database"]))
+                return self::error("配置错误！", "ERROR");
+
+            $this->links[$linkNum] = mysqli_connect(($config["persistent"] ? "p:" : "").$config['host'], $config['username'], $config['password'], $config['database'], (!empty($config['port']) ? $config['port'] : 3306));
+            if (!$this->links[$linkNum])
+                return self::error("数据库连接失败！", "ERROR");
             
-            $host = $config['host'].( $config['port'] ? ":{$config['port']}" : "" );
-            if( $config["persistent"] )
-                $this->links[$linkNum] = mysql_pconnect( $host, $config['username'], $config['password'], CLIENT_MULTI_RESULTS);
-            else
-                $this->links[$linkNum] = mysql_connect( $host, $config['username'], $config['password'], true, CLIENT_MULTI_RESULTS);
-            
-            if( !$this->links[$linkNum] || (!empty($config['database']) && !mysql_select_db($config['database'], $this->links[$linkNum])) )
-                return self::error( $this->getLastError(), "ERROR" );
-        
-            $dbVersion = mysql_get_server_info($this->links[$linkNum]);
-            
-            // 使用UTF8存取数据库 需要mysql 4.1.0以上支持 
-            if( $dbVersion >= "4.1" )
-                mysql_query("SET NAMES '".$this->config['charset']."'", $this->links[$linkNum]);
+            // 使用UTF8存取数据库 需要mysql 4.1.0以上支持
+            mysqli_query($this->links[$linkNum], "SET NAMES '".$this->config['charset']."'");
 
             // 强制不设定MySql模式（如不作输入检测、错误提示、语法模式检查等）应该能提高性能
-            if( $dbVersion > "5.0.1" )
-                mysql_query("SET sql_mode=''", $this->links[$linkNum]);
+            mysqli_query($this->links[$linkNum], "SET sql_mode=''");
      
             // 标记连接成功
-            $this->connected = true;  
+            $this->connected = true;
         }
+
         return $this->links[$linkNum];
     }
 
@@ -72,8 +65,8 @@ class Mysql extends Database {
      +----------------------------------------------------------
      */
     public function free() {
-        if( !empty($this->queryID) )
-            mysql_free_result($this->queryID);
+        if (!empty($this->queryID))
+            mysqli_free_result($this->queryID);
         $this->queryID = 0;
     }
 
@@ -84,10 +77,10 @@ class Mysql extends Database {
      * @access public
      +----------------------------------------------------------
      */
-    public function close() {        
+    public function close() {
         $this->free();
-        if( $this->linkID && !mysql_close($this->linkID) )
-            return self::error( $this->getLastError(), "ERROR" ); 
+        if ($this->linkID && !mysqli_close($this->linkID))
+            return self::error($this->getLastError(), "ERROR"); 
         $this->linkID = 0;
     } 
 
@@ -105,27 +98,27 @@ class Mysql extends Database {
      */
     public function query($str) {
         
-        $this->initConnect(false);        
-        if( !$this->linkID ) 
-            return false;            
+        $this->initConnect(false);
+        if (!$this->linkID) 
+            return false;
  
         $this->free();
 
-        $this->sql = $str;        
+        $this->sql = $str;
         $this->count("query", true);
 
-        $this->queryID = mysql_query($str, $this->linkID);
-        if( false === $this->queryID ) {
-            return self::error( $this->getLastError(), "ERROR" );
+        $this->queryID = mysqli_query($this->linkID, $str);
+        if (false === $this->queryID) {
+            return self::error($this->getLastError(), "ERROR");
         } 
         else{
-            $this->numRows = mysql_num_rows($this->queryID);
+            $this->numRows = mysqli_num_rows($this->queryID);
             $result = array();
-            if( $this->numRows > 0 ) {
-                while( $row = mysql_fetch_assoc($this->queryID) ){
+            if ($this->numRows > 0) {
+                while($row = mysqli_fetch_assoc($this->queryID)){
                     $result[] = $row;
                 }
-                mysql_data_seek($this->queryID, 0);
+                mysqli_data_seek($this->queryID, 0);
             }
             return $result;
         }
@@ -145,21 +138,21 @@ class Mysql extends Database {
     public function execute($str) {
         
         $this->initConnect(true);
-        if( !$this->linkID )         
-            return false;               
+        if (!$this->linkID)
+            return false;
 
         $this->free();
 
         $this->sql = $str;
         $this->count("execute", true);
 
-        $result = mysql_query($str, $this->linkID);
-        if ( false === $result) {
-            return self::error( $this->getLastError(), "ERROR" );
+        $result = mysqli_query($this->linkID, $str);
+        if (false === $result) {
+            return self::error($this->getLastError(), "ERROR");
         } 
         else {
-            $this->numRows = mysql_affected_rows($this->linkID);
-            $this->lastInsID = mysql_insert_id($this->linkID);
+            $this->numRows = mysqli_affected_rows($this->linkID);
+            $this->lastInsID = mysqli_insert_id($this->linkID);
             return max($this->numRows, $this->lastInsID);
         }
     }
@@ -175,10 +168,10 @@ class Mysql extends Database {
      */
     public function startTrans() {
         $this->initConnect(true);
-        if( !$this->linkID ) 
+        if (!$this->linkID) 
             return false;            
-        if( $this->transTimes == 0 ) {
-            mysql_query('START TRANSACTION', $this->linkID);
+        if ($this->transTimes == 0) {
+            mysqli_query($this->linkID, 'START TRANSACTION');
         }
         $this->transTimes++;
         return ;
@@ -194,11 +187,11 @@ class Mysql extends Database {
      +----------------------------------------------------------
      */
     public function commit() {
-        if( $this->transTimes > 0 ) {
-            $result = mysql_query('COMMIT', $this->linkID);
+        if ($this->transTimes > 0) {
+            $result = mysqli_query($this->linkID, 'COMMIT');
             $this->transTimes = 0;
-            if( !$result ){
-                return self::error( $this->getLastError(), "ERROR" );
+            if (!$result){
+                return self::error($this->getLastError(), "ERROR");
             }
         }
         return true;
@@ -214,11 +207,11 @@ class Mysql extends Database {
      +----------------------------------------------------------
      */
     public function rollback() {
-        if( $this->transTimes > 0 ) {
-            $result = mysql_query('ROLLBACK', $this->linkID);
+        if ($this->transTimes > 0) {
+            $result = mysqli_query($this->linkID, 'ROLLBACK');
             $this->transTimes = 0;
-            if( !$result ){
-                return self::error( $this->getLastError(), "ERROR" );
+            if (!$result){
+                return self::error($this->getLastError(), "ERROR");
             }
         }
         return true;
@@ -260,8 +253,8 @@ class Mysql extends Database {
      +----------------------------------------------------------
      */
     public function getLastError() {
-        $error = empty($this->linkID) ? mysql_error() : mysql_error($this->linkID);
-        if( !empty($error) && '' != $this->getLastSql() ){
+        $error = empty($this->linkID) ? "连接错误" : mysqli_error($this->linkID);
+        if (!empty($error) && '' != $this->getLastSql()){
             $error .= "\t[SQL] : ".$this->getLastSql();
         }
         return $error;
@@ -275,7 +268,7 @@ class Mysql extends Database {
      +----------------------------------------------------------
      */
     public function getTables($dbName='') {
-        if( !empty($dbName) ) {
+        if (!empty($dbName)) {
             $sql = 'SHOW TABLES FROM '.$dbName;
         }
         else{
@@ -283,7 +276,7 @@ class Mysql extends Database {
         }
         $result = $this->query($sql);
         $info   = array();
-        foreach( $result as $key => $val ) {
+        foreach($result as $key => $val) {
             $info[$key] = current($val);
         }
         return $info;
@@ -299,8 +292,8 @@ class Mysql extends Database {
     public function getFields($tableName) {
         $result = $this->query('SHOW COLUMNS FROM '.$tableName);
         $info   = array();
-        if($result) {
-            foreach( $result as $key => $val ) {
+        if ($result) {
+            foreach($result as $key => $val) {
                 $info[$val['Field']] = array(
                 'name'    => $val['Field'],
                 'type'    => $val['Type'],
@@ -308,7 +301,7 @@ class Mysql extends Database {
                 'default' => $val['Default'],
                 'primary' => (strtolower($val['Key']) == 'pri'),
                 'autoinc' => (strtolower($val['Extra']) == 'auto_increment'),
-                );
+               );
             }
         }
         return $info;
