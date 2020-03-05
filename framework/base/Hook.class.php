@@ -98,7 +98,7 @@ class Hook extends PithyBase {
 
         $hooks = Pithy::config("Hook.".$tag);
 
-        if( empty($hooks) || !is_array($hook) )
+        if( empty($hooks) || !is_array($hooks) )
             $hooks = array("enable"=>true);
         if( !isset($hooks["enable"]) )
             $hooks["enable"] = true;    

@@ -35,6 +35,8 @@ class Router extends PithyBase {
 
     public function initialize(){
 
+        !isset($_SERVER["HTTP_HOST"]) && $_SERVER["HTTP_HOST"] = $_SERVER["SERVER_NAME"];
+
         // 获取配置
         $this->mode = Pithy::config("Router.mode");
         $this->groups = array_keys(Pithy::config("Router.groups"));

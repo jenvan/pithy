@@ -608,7 +608,7 @@ class Pithy{
         foreach ($args as $arg){
             $str .= print_r($arg, true)." ";
         }
-        $data[] = $str;
+        array_push($data, $str);
         
         if (!PITHY_DEBUG)
             return;
@@ -692,10 +692,10 @@ class Pithy{
                 }                    
                 $msg .= ") ".PHP_EOL;
             }
-            $msg .=  ( IS_CLI ? "" : "@ ".date("Y-m-d H:i:s")." | ".$_SERVER["SERVER_ADDR"]." : ".$_SERVER["REMOTE_ADDR"]);
+            $msg .=  ( IS_CLI ? "" : "@ ".date("Y-m-d H:i:s")." | ".$_SERVER["SERVER_ADDR"]." : ".$_SERVER["REMOTE_ADDR"].PHP_EOL);
         }
 
-        $data[] = (strstr($msg,"\n") ? "\n" : "").$msg;
+        array_push($data, (strstr($msg,"\n") ? "\n" : "").$msg);
         count($data) <= 100 || array_slice($data, -100);
 
         return $msg;
