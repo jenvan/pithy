@@ -619,7 +619,9 @@ class Pithy{
         }
         
         try {
-            $handle = stream_socket_client("udp://255.255.255.255:9527", $errno, $errstr);
+            $handle = @stream_socket_client("udp://255.255.255.255:9527", $errno, $errstr);
+            if (!$handle)
+                return;
             fwrite($handle, "\n");
             for ($i = 0; $i < strlen($str); $i = $i + 100){
                 fwrite($handle, substr($str, $i, 100));
@@ -696,7 +698,7 @@ class Pithy{
         }
 
         array_push($data, (strstr($msg,"\n") ? "\n" : "").$msg);
-        count($data) <= 100 || array_slice($data, -100);
+        count($data) <= 100 || $data = array_slice($data, -100);
 
         return $msg;
     }
