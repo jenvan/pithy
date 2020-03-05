@@ -680,7 +680,7 @@ class Pithy{
                             $msg .= get_resource_type($item);
                         elseif (is_array($item)){
                             if ($count < 3){
-                                @array_walk($item, create_function('&$v,$k','if (is_object($v)){ $v = "<OBJECT>".get_class($v); } if (is_resource($v)){ $v = "<RESOURCE>".get_resource_type($v); }'));    
+                                @array_walk($item, create_function('&$v,$k','if (is_array($v)){ $v = "<ARRAY>".count($v); } if (is_object($v)){ $v = "<OBJECT>".get_class($v); } if (is_resource($v)){ $v = "<RESOURCE>".get_resource_type($v); }'));    
                                 $msg .= str_replace(array("\r","\n","\r\n"), "", var_export($item, true));
                             }
                             else
@@ -800,7 +800,7 @@ class Pithy{
             // 调用 php 自带的日志记录函数
             error_log($msg.PHP_EOL, $type, $destination, $extra);
             
-            $force && self::debug($msg);
+            $force && strstr($msg, "Pithy::debug(") == false && self::debug($msg);
         }
 
         // 执行外部日志处理程序 (如果定义了外部的日志处理程序并且没有强制使用内部的，则使用外部日志处理程序来处理日志)
@@ -856,18 +856,11 @@ class Pithy{
 
         $msg = $errstr;
 
-        // 调试错误
+        // 跟踪错误
         (PITHY_DEBUG || self::config("App.Error.Trace")) && $msg = self::trace($msg, debug_backtrace()); 
 
         // 记录错误 
         $info = $errfile."(".$errline.") -=> ".$msg;
-
-        if (isset($params[4]) && !empty($params[4]) && (PITHY_DEBUG || self::config("App.Error.Trace"))){
-            $param = array_slice($params[4], 0, 10);                
-            @array_walk($param, create_function('&$v,$k','if (is_array($v)){ $v = "<ARRAY>".count($v); } if (is_object($v)){ $v = "<OBJECT>".get_class($v); } if (is_resource($v)){ $v = "<RESOURCE>".get_resource_type($v); }'));
-            //$info .= " ".PHP_EOL."-------------------------------".PHP_EOL.var_export($param, true);
-        }            
-
         if (self::config("App.Error.Log"))
             self::log($info, array("destination" => basename(basename($errfile, ".php"), ".class").".error", "level" => strtoupper($type)), true);
 
@@ -911,7 +904,7 @@ class Pithy{
 
         $msg = $trace["message"]; 
 
-        // 调试异常              
+        // 跟踪错误              
         (PITHY_DEBUG || self::config("App.Error.Trace")) && $msg = self::trace($msg, $traces);
 
         // 记录错误 
