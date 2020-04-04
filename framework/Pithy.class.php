@@ -36,9 +36,10 @@ PITHY_MODE == "lite" && Pithy::run();
 
 // 核心类
 class Pithy{
-
+   
+    static public $terminator = null;
     static public $inputer = null;
-    static public $outputer = null;
+    static public $outputer = null; 
 
     static private $_alias = array();
     static private $_object = array();
@@ -854,23 +855,20 @@ class Pithy{
                 break;
         }
 
-        $msg = $errstr;
+        $msg = $err = $errstr;
 
         // 跟踪错误
-        (PITHY_DEBUG || self::config("App.Error.Trace")) && $msg = self::trace($msg, debug_backtrace()); 
+        (PITHY_DEBUG || self::config("App.Error.Trace")) && $err = self::trace($msg, debug_backtrace()); 
 
         // 记录错误 
-        $info = $errfile."(".$errline.") -=> ".$msg;
         if (self::config("App.Error.Log"))
-            self::log($info, array("destination" => basename(basename($errfile, ".php"), ".class").".error", "level" => strtoupper($type)), true);
+            self::log($errfile."(".$errline.") -=> ".$err, array("destination" => basename(basename($errfile, ".php"), ".class").".error", "level" => strtoupper($type)), true);
 
         // 输出错误
         if ($halt){
-            if (PITHY_DEBUG || self::config("App.Error.Display"))
-                return self::halt($info);
-            ob_clean();
-            echo self::config("App.Error.Message");
-            exit;
+            if (!PITHY_DEBUG && !self::config("App.Error.Display"))
+                $msg = self::config("App.Error.Message");
+            return self::halt(PITHY_DEBUG ? $err : $msg);
         }
     } 
 
@@ -902,23 +900,19 @@ class Pithy{
         //self::dump($e);
         //self::dump($traces); 
 
-        $msg = $trace["message"]; 
+        $msg = $err = $trace["message"]; 
 
-        // 跟踪错误              
-        (PITHY_DEBUG || self::config("App.Error.Trace")) && $msg = self::trace($msg, $traces);
+        // 跟踪错误
+        (PITHY_DEBUG || self::config("App.Error.Trace")) && $err = self::trace($msg, $traces);
 
         // 记录错误 
-        $info = $trace["file"]."(".$trace["line"].") -=> ".$msg;
         if (self::config("App.Error.Log"))
-            self::log($info, array("destination"=> basename(basename($trace["file"], ".php"), ".class").".exception", "level"=>"ALERT"), true);
+            self::log($trace["file"]."(".$trace["line"].") -=> ".$err, array("destination"=> basename(basename($trace["file"], ".php"), ".class").".exception", "level"=>"ALERT"), true);
 
         // 输出异常
-        if (PITHY_DEBUG || self::config("App.Error.Display"))
-            return self::halt($info);
-
-        ob_clean();
-        echo self::config("App.Error.Message");
-        exit;
+        if (!PITHY_DEBUG && !self::config("App.Error.Display"))
+            $msg = self::config("App.Error.Message");
+        return self::halt(PITHY_DEBUG ? $err : $msg);
     }  
 
 
@@ -1216,16 +1210,19 @@ class Pithy{
         // 显示要输出的内容
         if (!IS_CLI){
 
-            // 如果没有发送头部，则发送编码
-            if (!headers_sent())
-                header("Content-type: text/html; charset=utf-8");
+            !headers_sent() && header("Content-type: text/html; charset=utf-8");
 
-            $dbg = array_slice(self::debug(), 0, -1);
-            $msg = preg_replace("/".PHP_EOL."(#|@)/", PHP_EOL."<b style='color:#33F;'>$1</b>", $msg);
-            $msg = "<b style='color:#F33;'>".preg_replace("/".PHP_EOL."/", "</b><pre>", $msg, 1)."</pre>";
-            $msg = strstr($msg, "<pre>") <> "" ? $msg : "<pre>".$msg."</pre>";                
-            $msg = count($dbg) == 0 ? $msg : $msg."--------------- DEBUG ---------------<pre>".print_r($dbg, true)."</pre>";
-            $msg = "<div style='position:fixed;top:10%;left:10%;width:78%;height:78%;padding:1%;background:#000;border-radius:10px;color:#999;font-size:14px;line-height:24px;opacity:0.8;overflow:auto;'>".$msg."</div>";  
+            if (PITHY_DEBUG){
+                $dbg = array_slice(self::debug(), 0, -1);
+                $msg = preg_replace("/".PHP_EOL."(#|@)/", PHP_EOL."<b style='color:#33F;'>$1</b>", $msg);
+                $msg = "<b style='color:#F33;'>".preg_replace("/".PHP_EOL."/", "</b><pre>", $msg, 1)."</pre>";
+                $msg = strstr($msg, "<pre>") <> "" ? $msg : "<pre>".$msg."</pre>";                
+                $msg = count($dbg) == 0 ? $msg : $msg."--------------- DEBUG ---------------<pre>".print_r($dbg, true)."</pre>";
+                $msg = "<div title='双击关闭' ondblclick='this.style.display=\"none\"' style='position:fixed;top:10%;left:10%;width:78%;height:78%;padding:1%;background:#000;border-radius:10px;color:#999;font-size:14px;line-height:24px;opacity:0.8;overflow:auto;'>".$msg."</div>";  
+            }
+
+            if (!is_null(Pithy::$terminator))
+                return call_user_func(Pithy::$terminator, $msg); 
         }
         
         if (IS_CLI && IS_WIN)
