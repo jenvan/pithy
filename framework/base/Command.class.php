@@ -20,24 +20,23 @@
  * @version  $Id$
  +------------------------------------------------------------------------------
  */
- 
-// trace 记录
-$GLOBALS["pithy_traces"] = array();
 
 // 日志记录
 $GLOBALS["pithy_logs"] = array();
 
 class Command extends PithyBase {
     
-    // 是否调试（调试时在屏幕打印输出）
-    public $debug = false;       
+    // 是否强制输出（调试时在屏幕打印输出所有信息，即命令行参数带上 -force ）
+    public $force = false;
     
     // 是否每个方法记录到一个独立的日志文件中
-    public $alone = false;
-    
-    // 多少条记录就写入到日志文件
-    public $amount = 1000;  
-    
+    public $logAlone = false;
+
+    // 指定日志文件名称
+    public $logName = "";
+
+    // 当前执行的 action
+    private $_action = "";
     
     /**
      * 初始化   
@@ -158,7 +157,9 @@ class Command extends PithyBase {
      * @param array $vars 对象的属性
      * @return mixed
      */
-    final public function run($action, $params=null, $vars=null){
+    final public function run($action, $params = null, $vars = null){
+
+        $this->_action = $action;
         
         // 赋值
         if (!is_array($params))
@@ -170,18 +171,13 @@ class Command extends PithyBase {
         $actionName = "action".ucfirst($action);
         if (method_exists($this, $actionName)){
 
-            $GLOBALS["pithy_log_name"] = get_class($this).( $this->alone ? "_".$action : "");
             is_array($GLOBALS["pithy_logs"]) || $GLOBALS["pithy_logs"] = array();
-            is_array($GLOBALS["pithy_traces"]) || $GLOBALS["pithy_traces"] = array(); 
-            
             
             $actionName = "action".ucfirst($action);
             if (!method_exists($this, "_before") || $this->_before($action))
                 Pithy::call($this, $actionName, $params, $vars); 
             method_exists($this, "_after") && $this->_after($action);
-                         
-            
-            $GLOBALS["pithy_traces"] = array();
+
             $this->log2file();
             
             return;
@@ -198,7 +194,7 @@ class Command extends PithyBase {
      * 运行外部控制器的 action
      * 
      * @param string $command 命令名称
-     * @param mixed $args 参数 数组或空格隔开的字符串      
+     * @param mixed $args 参数 数组或空格隔开的字符串
      * @return mixed
      */
     final public function call($command="", $action="", $args=null){
@@ -217,7 +213,7 @@ class Command extends PithyBase {
         if (!is_array($args))
             $args = array_filter(explode(" ", $args));
         
-        $arr = $this->parse($args);         
+        $arr = $this->parse($args);
         self::factory($command)->run($action, $arr["params"], $arr["vars"]); 
     }
     
@@ -229,7 +225,7 @@ class Command extends PithyBase {
     final public function help($command=""){
     
         if (empty($command))
-            $msg = "未指定命令！";     
+            $msg = "未指定命令！";
         else
             $msg = "命令行的动作不存在！";
                  
@@ -237,71 +233,60 @@ class Command extends PithyBase {
     }
     
     
+
     /** 
-     * 跟踪调试信息
+     * 屏幕打印信息
      * 
      * @param mixed $msg    调试内容 
-     * @param mixed $vars   环境变量
-     * @param mixed $type   强制输出
-     * this->trace("test", get_defined_vars());
+     * @param mixed $false  强制输出
      */
-    public function trace($msg, $vars=array(), $force="normal"){
-        if (is_array($vars) && !empty($vars)){
-            $vars = array_merge(get_object_vars($this), $vars);
-            @array_walk($vars, create_function('&$v,$k','if (is_object($v)){ $v = "<OBJECT>"; }'));
-            is_array( $GLOBALS["pithy_traces"]) || $GLOBALS["pithy_traces"] = array();
-            count( $GLOBALS["pithy_traces"]) <= 3 || array_splice( $GLOBALS["pithy_traces"], 0, -3);
-            array_push($GLOBALS["pithy_traces"], $vars);                                     
+    public function prt($msg, $force = false){
+        $msg = "";
+        $num =func_num_args();
+        $args = func_get_args();
+        is_bool($args[$num-1]) && $force = array_slice($args, -1) && array_splice($args, -1);
+        foreach($args as $arg){
+            $msg .= !is_array($arg) ? $arg : print_r($arg, true);
         }
-        
-        if (!is_array($vars))
-            $force = $vars;
-
-        if (is_array($msg))
-            $msg = print_r($msg, true);
-            
-        if ($force !== false && ( $force === true || $this->debug)){
+        if (PITHY_DEBUG || $force === true || $this->force){
             $msg = str_replace("#", PHP_EOL, $msg);
             $msg = IS_WIN ? mb_convert_encoding($msg, "gbk", "utf-8") : $msg;
-            echo $msg;    
-        }    
+            echo $msg;
+        }
     }
     
     /** 
      * 记录日志信息
      * 
-     * @param mixed $msg    日志内容 
-     * @param mixed $vars   环境变量
+     * @param mixed $msg    日志内容
      * @param mixed $type   强制输出
      */    
-    public function log($msg, $vars=array(), $force="normal"){
-        $this->trace($msg, $vars, $force);    
-        
+    public function log($msg, $force = true){
+        $this->prt($msg, $force);
         $msg = date("Y-m-d H:i:s") . " " . preg_replace(array("/^(#+)/","/(#+)$/"), array("",""), $msg);
-        
         is_array( $GLOBALS["pithy_logs"]) || $GLOBALS["pithy_logs"] = array();
         array_push( $GLOBALS["pithy_logs"], $msg);
-        if (count($GLOBALS["pithy_logs"]) >= $this->amount){
-            $this->log2file();       
+        if (count($GLOBALS["pithy_logs"]) >= 1000){
+            $this->log2file();
         }
-    }                             
+    }
     private function log2file(){
         if (empty($GLOBALS["pithy_logs"]))
             return;
-                
         $msg = implode("\r\n", $GLOBALS["pithy_logs"]);
-        Pithy::log($msg, "cli_".$GLOBALS["pithy_log_name"], true);
-        $GLOBALS["pithy_logs"] = array();    
+        empty($this->logName) && $this->logName = get_class($this).($this->logAlone ? "_".$this->_action : "");
+        Pithy::log($msg, "cli_".$this->logName, true);
+        $GLOBALS["pithy_logs"] = array();
     }
     
     /**
      * 命令终止
      * 
      */
-    public function halt($msg=""){
+    public function halt($msg = ""){
         !empty($msg) && $this->log($msg, true);
         $this->log2file();
         exit;
-    }      
+    }
 
 }
