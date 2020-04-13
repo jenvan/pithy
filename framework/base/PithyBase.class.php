@@ -82,7 +82,12 @@ class PithyBase {
 
     public function __call($method,$args){       
         throw new Exception("Method '".get_class($this)."::".$method."()' is not defined!");
-    } 
+    }
+    
+    public function debug(){
+        $args = func_get_args();
+        call_user_func_array(array("Pithy", "debug"), $args);
+    }
 
     // 获取 singleton 
     static public function singleton(){ 
