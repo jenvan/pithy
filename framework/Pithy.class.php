@@ -681,7 +681,7 @@ class Pithy{
                             $msg .= get_resource_type($item);
                         elseif (is_array($item)){
                             if ($count < 3){
-                                @array_walk($item, create_function('&$v,$k','if (is_array($v)){ $v = "<ARRAY>".count($v); } if (is_object($v)){ $v = "<OBJECT>".get_class($v); } if (is_resource($v)){ $v = "<RESOURCE>".get_resource_type($v); }'));    
+                                @array_walk($item, create_function('&$v,$k','if (is_array($v)){ $v = "[ARRAY] ".count($v); } if (is_object($v)){ $v = "[OBJECT] ".get_class($v); } if (is_resource($v)){ $v = "[RESOURCE] ".get_resource_type($v); }'));    
                                 $msg .= str_replace(array("\r","\n","\r\n"), "", var_export($item, true));
                             }
                             else
@@ -801,7 +801,7 @@ class Pithy{
             // 调用 php 自带的日志记录函数
             error_log($msg.PHP_EOL, $type, $destination, $extra);
             
-            $force && strstr($msg, "Pithy::debug(") == false && self::debug($msg);
+            $force && strstr($msg, "::debug(") == false && self::debug($msg);
         }
 
         // 执行外部日志处理程序 (如果定义了外部的日志处理程序并且没有强制使用内部的，则使用外部日志处理程序来处理日志)
@@ -809,7 +809,7 @@ class Pithy{
             $args = array(
                 "message" => $message,
                 "level" => $level,
-                "category" => "Pithy.Extend.".basename($destination, ".log"),                     
+                "category" => "Pithy.Extend.".basename($destination, ".log"),
             );            
             return call_user_func_array($logger, array($args)); 
         }                                 
@@ -858,7 +858,7 @@ class Pithy{
         $msg = $err = $errstr;
 
         // 跟踪错误
-        (PITHY_DEBUG || self::config("App.Error.Trace")) && $err = self::trace($msg, debug_backtrace()); 
+        (PITHY_DEBUG || self::config("App.Error.Trace")) && $err = self::trace($err, debug_backtrace()); 
 
         // 记录错误 
         if (self::config("App.Error.Log"))
@@ -903,7 +903,7 @@ class Pithy{
         $msg = $err = $trace["message"]; 
 
         // 跟踪错误
-        (PITHY_DEBUG || self::config("App.Error.Trace")) && $err = self::trace($msg, $traces);
+        (PITHY_DEBUG || self::config("App.Error.Trace")) && $err = self::trace($err, $traces);
 
         // 记录错误 
         if (self::config("App.Error.Log"))
@@ -1213,12 +1213,10 @@ class Pithy{
             !headers_sent() && header("Content-type: text/html; charset=utf-8");
 
             if (PITHY_DEBUG){
-                $dbg = array_slice(self::debug(), 0, -1);
                 $msg = preg_replace("/".PHP_EOL."(#|@)/", PHP_EOL."<b style='color:#33F;'>$1</b>", $msg);
-                $msg = "<b style='color:#F33;'>".preg_replace("/".PHP_EOL."/", "</b><pre>", $msg, 1)."</pre>";
-                $msg = strstr($msg, "<pre>") <> "" ? $msg : "<pre>".$msg."</pre>";                
-                $msg = count($dbg) == 0 ? $msg : $msg."--------------- DEBUG ---------------<pre>".print_r($dbg, true)."</pre>";
-                $msg = "<div title='双击关闭' ondblclick='this.style.display=\"none\"' style='position:fixed;top:10%;left:10%;width:78%;height:78%;padding:1%;background:#000;border-radius:10px;color:#999;font-size:14px;line-height:24px;opacity:0.8;overflow:auto;'>".$msg."</div>";  
+                $msg = "<h1 style='color:#F33;'>".preg_replace("/".PHP_EOL."/", "</h1><pre>", $msg, 1)."</pre>";
+                $msg = strstr($msg, "<pre>") <> "" ? $msg : "<pre>".$msg."</pre>";
+                $msg = "<div title='双击关闭' ondblclick='this.style.display=\"none\"' style='position:fixed;top:10%;left:10%;width:78%;height:78%;padding:1%;background:#000;border-radius:10px;color:#999;font-size:14px;font-weight:400;line-height:24px;opacity:0.8;overflow:auto;'>".$msg."</div>";  
             }
 
             if (!is_null(Pithy::$terminator))
