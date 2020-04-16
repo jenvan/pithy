@@ -105,6 +105,7 @@ class Mysql extends Database {
         $this->free();
 
         $this->sql = $str;
+        array_push($this->sqls, $str);
         $this->count("query", true);
 
         $this->queryID = mysqli_query($this->linkID, $str);
@@ -144,6 +145,7 @@ class Mysql extends Database {
         $this->free();
 
         $this->sql = $str;
+        array_push($this->sqls, $str);
         $this->count("execute", true);
 
         $result = mysqli_query($this->linkID, $str);
@@ -219,15 +221,15 @@ class Mysql extends Database {
 
     /**
      +----------------------------------------------------------
-     * 获取最近一次 insert ID
+     * 获取所有查询的sql语句
      +----------------------------------------------------------
      * @access public
      +----------------------------------------------------------
      * @return string
      +----------------------------------------------------------
      */
-    public function getLastId() {
-        return $this->lastInsID;
+    public function getAllSql() {
+        return $this->sqls;
     }
 	
     /**
@@ -241,6 +243,19 @@ class Mysql extends Database {
      */
     public function getLastSql() {
         return $this->sql;
+    }
+
+    /**
+     +----------------------------------------------------------
+     * 获取最近一次 insert ID
+     +----------------------------------------------------------
+     * @access public
+     +----------------------------------------------------------
+     * @return string
+     +----------------------------------------------------------
+     */
+    public function getLastId() {
+        return $this->lastInsID;
     }
 
     /**

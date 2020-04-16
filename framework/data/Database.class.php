@@ -94,6 +94,8 @@ class Database
     protected $linkID = null;      
     // 数据库操作参数配置
     private $options = array();         
+    // 所有SQL指令
+    protected $sqls = array();
     // 当前SQL指令
     protected $sql = '';        
     // 当前查询ID

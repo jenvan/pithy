@@ -240,7 +240,7 @@ class Command extends PithyBase {
      * @param mixed $msg    调试内容 
      * @param mixed $false  强制输出
      */
-    public function prt($msg, $force = false){
+    public function show($msg, $force = false){
         $msg = "";
         $num =func_num_args();
         $args = func_get_args();
@@ -262,8 +262,9 @@ class Command extends PithyBase {
      * @param mixed $type   强制输出
      */    
     public function log($msg, $force = true){
-        $this->prt($msg, $force);
+        $this->show("#".$msg, $force);
         $msg = date("Y-m-d H:i:s") . " " . preg_replace(array("/^(#+)/","/(#+)$/"), array("",""), $msg);
+        
         is_array( $GLOBALS["pithy_logs"]) || $GLOBALS["pithy_logs"] = array();
         array_push( $GLOBALS["pithy_logs"], $msg);
         if (count($GLOBALS["pithy_logs"]) >= 1000){
@@ -275,7 +276,7 @@ class Command extends PithyBase {
             return;
         $msg = implode("\r\n", $GLOBALS["pithy_logs"]);
         empty($this->logName) && $this->logName = get_class($this).($this->logAlone ? "_".$this->_action : "");
-        Pithy::log($msg, "cli_".$this->logName, true);
+        Pithy::log($msg, array("destination" => "cli_".$this->logName, "level" => "NOTICE"));
         $GLOBALS["pithy_logs"] = array();
     }
     
