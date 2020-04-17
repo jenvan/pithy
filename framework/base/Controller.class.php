@@ -138,8 +138,8 @@ class Controller extends PithyBase {
 
         $exists = Pithy::import($id);
         if (!$exists){
-            header("HTTP/1.0 404 Not Found");
-            Pithy::debug("404 NOT FOUND:", $_SERVER["REQUEST_URI"]);
+            //header("HTTP/1.0 404 Not Found");
+            //Pithy::debug("404 NOT FOUND:", $_SERVER["REQUEST_URI"]);
             Controller::singleton()->exception("控制器 {$id} 不存在！");
         }
         
@@ -289,7 +289,7 @@ class Controller extends PithyBase {
 
         // 动作不存在
         if (method_exists($this, "_miss")){
-            header("HTTP/1.0 404 Not Found");
+            //header("HTTP/1.0 404 Not Found");
             return $this->_miss($action, $params);
         }
         
