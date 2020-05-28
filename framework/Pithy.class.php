@@ -482,6 +482,21 @@ class Pithy{
         if (!is_object($object))
             $object = self::instance($object);
 
+        $class = new ReflectionClass($object);
+        if (!empty($vars) && is_array($vars)){    
+            foreach($vars as $name => $value){
+                if ($class->hasProperty($name)){
+                    $property = $class->getProperty($name);
+                    if ($property->isPublic() && !$property->isStatic()){
+                        $object->$name = $value;
+                        unset($vars[$name]);
+                    }
+                }
+            }
+            if (!empty($vars))
+                trigger_error(get_class($object)." : Unknown property ".implode(', ',array_keys($vars))." !", E_USER_ERROR);    
+        }
+
         $method = new ReflectionMethod($object, $methodName);
         if ($method->getNumberOfParameters() <= 0)
             return $object->$methodName();
@@ -503,24 +518,7 @@ class Pithy{
                 trigger_error(get_class($object)."::{$methodName} : Getted paramters [{$name}] is missing!", E_USER_ERROR);
         }
         $params = self::merge($params, $args);
-        
-        $class = new ReflectionClass($object);
-        if (!empty($vars) && is_array($vars)){    
-            foreach($vars as $name => $value){
-                if ($class->hasProperty($name)){
-                    $property = $class->getProperty($name);
-                    if ($property->isPublic() && !$property->isStatic()){
-                        $object->$name = $value;
-                        unset($vars[$name]);
-                    }
-                }
-            }
-            if (!empty($vars))
-                trigger_error(get_class($object)." : Unknown property ".implode(', ',array_keys($vars))." !", E_USER_ERROR);    
-        }
-        
         return $method->invokeArgs($object, $args);
-
     }
 
               
@@ -801,7 +799,7 @@ class Pithy{
             // 调用 php 自带的日志记录函数
             error_log($msg.PHP_EOL, $type, $destination, $extra);
             
-            $force && strstr($msg, "::debug(") == false && self::debug($msg);
+            !IS_CLI && $force && strstr($msg, "::debug(") == false && self::debug($msg);
         }
 
         // 执行外部日志处理程序 (如果定义了外部的日志处理程序并且没有强制使用内部的，则使用外部日志处理程序来处理日志)
@@ -866,7 +864,7 @@ class Pithy{
 
         // 输出错误
         if ($halt){
-            if (!PITHY_DEBUG && !self::config("App.Error.Display"))
+            if (!PITHY_DEBUG && !IS_CLI && !self::config("App.Error.Display"))
                 $msg = self::config("App.Error.Message");
             return self::halt(PITHY_DEBUG ? $err : $msg);
         }
@@ -910,7 +908,7 @@ class Pithy{
             self::log($trace["file"]."(".$trace["line"].") -=> ".$err, array("destination"=> basename(basename($trace["file"], ".php"), ".class").".exception", "level"=>"ALERT"), true);
 
         // 输出异常
-        if (!PITHY_DEBUG && !self::config("App.Error.Display"))
+        if (!PITHY_DEBUG && !IS_CLI && !self::config("App.Error.Display"))
             $msg = self::config("App.Error.Message");
         return self::halt(PITHY_DEBUG ? $err : $msg);
     }  
