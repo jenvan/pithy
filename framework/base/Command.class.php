@@ -249,7 +249,8 @@ class Command extends PithyBase {
             $msg .= !is_array($arg) ? $arg : print_r($arg, true);
         }
         if (PITHY_DEBUG || $force === true || $this->force){
-            $msg = str_replace("#", PHP_EOL, $msg);
+            $msg = preg_replace("/([^#]\s*)#(\s*[^#])/m", "$1\1$2", $msg);
+            $msg = str_replace("\1", "#", str_replace("#", PHP_EOL, $msg));
             $msg = IS_WIN ? mb_convert_encoding($msg, "gbk", "utf-8") : $msg;
             echo $msg;
         }
