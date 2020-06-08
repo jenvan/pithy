@@ -134,7 +134,7 @@ class Controller extends PithyBase {
      * @return Controller
      *          
      */
-    static public function factory($id){
+    static public function factory($id){ 
 
         $exists = Pithy::import($id);
         if (!$exists){
@@ -312,6 +312,8 @@ class Controller extends PithyBase {
     final public function call($route, $params=null){      
 
         $arr = $this->router->parse($route);
+
+        !empty($arr["group"]) && Pithy::import("~.@".$arr["group"].".extend.*");
         
         self::factory($arr["controller"])->run($arr["action"], $params, false); 
     }
