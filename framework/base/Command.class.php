@@ -273,7 +273,7 @@ class Command extends PithyBase {
         }
         $msg = implode(" ", $args);
         $this->log($msg);
-        return $this->show($msg, true);
+        return $this->show("#".$msg, true);
     }
     public function error(){
         $args = func_get_args();
