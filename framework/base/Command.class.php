@@ -21,9 +21,19 @@
  +------------------------------------------------------------------------------
  */
 
-// 日志记录
-$GLOBALS["pithy_logs"] = array();
+// 日志处理
+$GLOBALS["pithy_log_file"] = "cli";
+$GLOBALS["pithy_log_content"] = array();
+register_shutdown_function("log2file");
+function log2file(){
+    if (!is_array($GLOBALS["pithy_log_content"]) || empty($GLOBALS["pithy_log_content"]))
+        return;
+    $msg = implode("\r\n", $GLOBALS["pithy_log_content"]);
+    $GLOBALS["pithy_log_content"] = array();
+    Pithy::log($msg, array("destination" => "cli_".$GLOBALS["pithy_log_file"], "level" => "NOTICE"));
+}
 
+// 基类
 class Command extends PithyBase {
     
     // 是否强制输出（调试时在屏幕打印输出所有信息，即命令行参数带上 -force ）
@@ -37,6 +47,17 @@ class Command extends PithyBase {
 
     // 当前执行的 action
     private $_action = "";
+
+    // 当前执行的 params
+    private $_params = "";
+
+    public function getAction(){
+        return $this->_action;
+    }
+
+    public function getParams(){
+        return $this->_params;
+    }
     
     /**
      * 初始化   
@@ -74,33 +95,33 @@ class Command extends PithyBase {
      * @return command
      *          
      */
-    static public function factory($name){    
+    static public function factory($name){
         
         $class = ucfirst(strtolower($name))."Command";
         $args = array(); 
          
         $root = Pithy::config("Command.Root");
         $map = Pithy::config("Command.Map");
-        if (isset($map[$name])){            
+        if (isset($map[$name])){
             if (is_array($map[$name])){
                 $path = $map[$name]["path"];
                 unset($map[$name]["path"]);
-                $args = $map[$name];    
-            }                
+                $args = $map[$name];
+            }
             else{
-                $path = $map[$name];    
-            }         
+                $path = $map[$name];
+            }
         }
         else{
             $path = $class;
         }
         
         if (strstr($path, "/") == "" || strstr($path, "\\") == ""){
-            $path = $root.$path.".class.php";    
-        }       
+            $path = $root.$path.".class.php";
+        }
         
         
-        $exists = Pithy::import($path);        
+        $exists = Pithy::import($path);
         if (!$exists){
             Command::singleton()->exception("命令行 {$name} 不存在！");
         }                
@@ -109,9 +130,9 @@ class Command extends PithyBase {
         $object = Pithy::instance($class, $args);
         if (!is_object($object) || !is_subclass_of($object, "Command")){
             Command::singleton()->exception("命令行 {$class} 类型出错！");
-        }                       
+        }
         
-        return $object;    
+        return $object;
     }
     
     /**
@@ -120,7 +141,7 @@ class Command extends PithyBase {
      * @param mixed $args
      * @return mixed array(params, vars);
      */
-    final public function parse($args){        
+    final public function parse($args){
         $params = $vars = array();
         
         foreach($args as $arg){
@@ -146,7 +167,7 @@ class Command extends PithyBase {
             }            
         }
 
-        return array("params"=>$params, "vars"=>$vars);        
+        return array("params" => $params, "vars" => $vars);
     }   
        
     /**
@@ -158,28 +179,21 @@ class Command extends PithyBase {
      * @return mixed
      */
     final public function run($action, $params = null, $vars = null){
-
-        $this->_action = $action;
         
         // 赋值
-        if (!is_array($params))
-            $params  = array();  
-        if (!is_array($vars))
-            $vars = array(); 
-        
+        !is_array($params) && $params  = array();
+        !is_array($vars) && $vars = array();
+
+        $this->_action = $action;
+        $this->_params = $params;
+
         // 执行自身 action
         $actionName = "action".ucfirst($action);
         if (method_exists($this, $actionName)){
-
-            is_array($GLOBALS["pithy_logs"]) || $GLOBALS["pithy_logs"] = array();
-            
-            $actionName = "action".ucfirst($action);
             if (!method_exists($this, "_before") || $this->_before($action))
                 Pithy::call($this, $actionName, $params, $vars); 
             method_exists($this, "_after") && $this->_after($action);
-
-            $this->log2file();
-            
+            log2file();
             return;
         }
 
@@ -197,8 +211,7 @@ class Command extends PithyBase {
      * @param mixed $args 参数 数组或空格隔开的字符串
      * @return mixed
      */
-    final public function call($command="", $action="", $args=null){
-
+    final public function call($command = "", $action = "", $args = null){
         if (empty($command)){
             if (!isset($_SERVER["argv"][1]))
                 return $this->help();
@@ -206,7 +219,7 @@ class Command extends PithyBase {
             if (!isset($_SERVER["argv"][2]))
                 return $this->help($command);
             $action = $_SERVER["argv"][2];
-        }            
+        }
         
         if (empty($args))
             $args = array_slice($_SERVER["argv"], 3);
@@ -222,13 +235,11 @@ class Command extends PithyBase {
      * 
      * @param mixed $command
      */
-    final public function help($command=""){
-    
+    final public function help($command = ""){
         if (empty($command))
             $msg = "未指定命令！";
         else
             $msg = "命令行的动作不存在！";
-                 
         $this->exception($msg);
     }
     
@@ -255,30 +266,37 @@ class Command extends PithyBase {
             echo $msg;
         }
     }
+    public function notice(){
+        $args = func_get_args();
+        foreach($args as $i => $arg){
+            $args[$i] = is_string($arg) ? $arg : print_r($arg, true);
+        }
+        $msg = implode(" ", $args);
+        $this->log($msg);
+        return $this->show($msg, true);
+    }
+    public function error(){
+        $args = func_get_args();
+        foreach($args as $i => $arg){
+            $args[$i] = is_string($arg) ? $arg : print_r($arg, true);
+        }
+        $msg = "!!! ".implode(" ", $args)." !!!";
+        $this->log($msg);
+        return $this->show("#".$msg, true);
+    }
     
     /** 
      * 记录日志信息
      * 
      * @param mixed $msg    日志内容
-     * @param mixed $type   强制输出
      */    
-    public function log($msg, $force = true){
-        $this->show("#".$msg, $force);
+    public function log($msg){
+        empty($this->logName) && $this->logName = get_class($this).($this->logAlone ? "-".$this->_action : "");
+        $GLOBALS["pithy_log_file"] = $this->logName;
         $msg = date("Y-m-d H:i:s") . " " . preg_replace(array("/^(#+)/","/(#+)$/"), array("",""), $msg);
-        
-        is_array( $GLOBALS["pithy_logs"]) || $GLOBALS["pithy_logs"] = array();
-        array_push( $GLOBALS["pithy_logs"], $msg);
-        if (count($GLOBALS["pithy_logs"]) >= 1000){
-            $this->log2file();
-        }
-    }
-    private function log2file(){
-        if (empty($GLOBALS["pithy_logs"]))
-            return;
-        $msg = implode("\r\n", $GLOBALS["pithy_logs"]);
-        empty($this->logName) && $this->logName = get_class($this).($this->logAlone ? "_".$this->_action : "");
-        Pithy::log($msg, array("destination" => "cli_".$this->logName, "level" => "NOTICE"));
-        $GLOBALS["pithy_logs"] = array();
+        is_array($GLOBALS["pithy_log_content"]) || $GLOBALS["pithy_log_content"] = array();
+        array_push($GLOBALS["pithy_log_content"], $msg);
+        count($GLOBALS["pithy_log_content"]) >= 1000 && log2file();
     }
     
     /**
@@ -287,7 +305,7 @@ class Command extends PithyBase {
      */
     public function halt($msg = ""){
         !empty($msg) && $this->log($msg, true);
-        $this->log2file();
+        log2file();
         exit;
     }
 
