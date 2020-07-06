@@ -30,7 +30,7 @@ function log2file(){
         return;
     $msg = implode("\r\n", $GLOBALS["pithy_log_content"]);
     $GLOBALS["pithy_log_content"] = array();
-    Pithy::log($msg, array("destination" => "cli_".$GLOBALS["pithy_log_file"], "level" => "NOTICE"));
+    Pithy::log($msg, array("destination" => $GLOBALS["pithy_log_file"], "level" => "NOTICE"));
 }
 
 // 基类
