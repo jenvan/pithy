@@ -65,7 +65,7 @@ class MNS  {
     
     // Topic 订阅
     public function subscribe($name, $tag, $point){
-        if ($this->check("topic")) return false;
+        if (!$this->check("topic")) return false;
         $retry = substr($point, 0, 4) == "http" ? "EXPONENTIAL_DECAY_RETRY" : "BACKOFF_RETRY";
         $format = substr($point, 0, 4) == "http" ? "SIMPLIFIED" : "JSON";
         $content = "<?xml version='1.0' encoding='utf-8'?>\n<Subscription xmlns='http://mns.aliyuncs.com/doc/v1/'>\n<FilterTag>{$tag}</FilterTag>\n<Endpoint>{$point}</Endpoint>\n<NotifyStrategy>{$retry}</NotifyStrategy>\n<NotifyContentFormat>{$format}</NotifyContentFormat>\n</Subscription>";
@@ -75,14 +75,14 @@ class MNS  {
     
     // Topic 取消订阅
     public function unsubscribe($name){
-        if ($this->check("topic")) return false;
+        if (!$this->check("topic")) return false;
         $rtn = $this->request("DELETE", "/topics/{$this->name}/subscriptions/{$name}");
         return $rtn == 204;
     }
     
     // Topic 发布消息
     public function publish($body, $tag, $attributes = ""){
-        if ($this->check("topic")) return false;
+        if (!$this->check("topic")) return false;
         $content = "<?xml version='1.0' encoding='utf-8'?>\n<Message xmlns='http://mns.aliyuncs.com/doc/v1/'>\n<MessageBody>".base64_encode(json_encode($body))."</MessageBody>\n<MessageTag>{$tag}</MessageTag>\n{$attributes}</Message>";
         $rtn = $this->request("POST", "/topics/{$this->name}/messages", $content);
         return $rtn == 201;
@@ -91,7 +91,7 @@ class MNS  {
     
     // 发送消息
     public function send($body, $delay = 0){
-        if ($this->check("queue")) return false;
+        if (!$this->check("queue")) return false;
         $content = "<?xml version='1.0' encoding='UTF-8'?>\n<Message xmlns='http://mns.aliyuncs.com/doc/v1/'>\n<MessageBody>".base64_encode(json_encode($body))."</MessageBody>\n<DelaySeconds>".intval($delay)."</DelaySeconds>\n</Message>";
         $rtn = $this->request("POST", "/queues/{$this->name}/messages", $content);
         return $rtn == 201;
@@ -99,7 +99,7 @@ class MNS  {
     
     // 接收消息
     public function receive($destroy = true){
-        if ($this->check("queue")) return false;
+        if (!$this->check("queue")) return false;
         $rtn = $this->request("GET", "/queues/{$this->name}/messages");
         $rtn == 200 && $destroy && $this->destroy();
         return $rtn == 200 ? $this->message["MessageBody"] : null;
@@ -107,7 +107,7 @@ class MNS  {
     
     // 延长消息可见时间
     public function delay($timeout, $id = ""){
-        if ($this->check("queue")) return false;
+        if (!$this->check("queue")) return false;
         empty($id) && isset($this->message["ReceiptHandle"]) && $id = $this->message["ReceiptHandle"];
         $rtn = $this->request("PUT", "/queues/{$this->name}/messages?receiptHandle={$id}&visibilityTimeout=".intval($timeout));
         return $rtn == 200;
@@ -115,7 +115,7 @@ class MNS  {
     
     // 删除消息
     public function destroy($id = ""){
-        if ($this->check("queue")) return false;
+        if (!$this->check("queue")) return false;
         empty($id) && isset($this->message["ReceiptHandle"]) && $id = $this->message["ReceiptHandle"];
         $rtn = $this->request("DELETE", "/queues/{$this->name}/messages?receiptHandle={$id}");
         return $rtn == 204;
