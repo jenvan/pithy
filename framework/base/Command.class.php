@@ -164,7 +164,7 @@ class Command extends PithyBase {
                 }
                 else
                     $vars[$name] = $value;
-            }            
+            }
         }
 
         return array("params" => $params, "vars" => $vars);
@@ -220,10 +220,10 @@ class Command extends PithyBase {
         }
 
         if (empty($action))
-            $action = isset($_SERVER["argv"][2]) ? $_SERVER["argv"][2] : "index";
+            $action = (isset($_SERVER["argv"][2]) && substr($_SERVER["argv"][2], 0, 1) != "-") ? $_SERVER["argv"][2] : "index";
         
         if (empty($args))
-            $args = array_slice($_SERVER["argv"], 3);
+            $args = $_SERVER["argv"];
         if (!is_array($args))
             $args = array_filter(explode(" ", $args));
         
