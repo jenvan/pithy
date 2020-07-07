@@ -212,14 +212,15 @@ class Command extends PithyBase {
      * @return mixed
      */
     final public function call($command = "", $action = "", $args = null){
+        
         if (empty($command)){
             if (!isset($_SERVER["argv"][1]))
                 return $this->help();
             $command = $_SERVER["argv"][1];
-            if (!isset($_SERVER["argv"][2]))
-                return $this->help($command);
-            $action = $_SERVER["argv"][2];
         }
+
+        if (empty($action))
+            $action = isset($_SERVER["argv"][2]) ? $_SERVER["argv"][2] : "index";
         
         if (empty($args))
             $args = array_slice($_SERVER["argv"], 3);
