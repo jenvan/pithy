@@ -123,11 +123,11 @@
 
         static public function name($str) {
             if( strstr($str,"_") != "" ){
-                return ucfirst(preg_replace("/_([a-zA-Z])/e", "strtoupper('\\1')", $name));
+                return ucfirst(preg_replace("/_([a-zA-Z])/e", "strtoupper('\\1')", $str));
             }
             if( preg_match("/[A-Z]/",$str) ){
-                $name=preg_replace("/[A-Z]/", "_\\0", $name);
-                return strtolower(trim($name, "_"));
+                $str=preg_replace("/[A-Z]/", "_\\0", $str);
+                return strtolower(trim($str, "_"));
             }
             return $str;
         }

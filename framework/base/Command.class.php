@@ -305,7 +305,7 @@ class Command extends PithyBase {
      * 
      */
     public function halt($msg = ""){
-        !empty($msg) && $this->log($msg, true);
+        !empty($msg) && $this->notice($msg);
         log2file();
         exit;
     }

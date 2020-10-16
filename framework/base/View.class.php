@@ -334,7 +334,7 @@ class View extends PithyBase {
         // AJAX输出 或 SCRIPT输出（跨域提交、结果通过window.name返回）
         $callback1 = Pithy::config("View.Show.Ajax");
         $callback2 = Pithy::config("View.Show.Script");
-        if ((isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && "xmlhttprequest" == strtolower($_SERVER["HTTP_X_REQUESTED_WITH"])) || !empty($_REQUEST[$callback1]) || !empty($_REQUEST[$callback2])){
+        if (Pithy::config("View.Show.Direct") || (isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && "xmlhttprequest" == strtolower($_SERVER["HTTP_X_REQUESTED_WITH"])) || !empty($_REQUEST[$callback1]) || !empty($_REQUEST[$callback2])){
             krsort($params);
             $content = json_encode($params);
             if (!empty($_REQUEST[$callback1])){

@@ -142,6 +142,7 @@ return array(
             "Success" => "OK",          // 信息显示默认返回成功消息
             "Failure" => "ERR",         // 信息显示默认返回失败消息
             "Template" => "//message",  // 信息显示模板的路径
+            "Direct" => false,          // 直接显示JSON
             "Ajax" => "callback",       // Ajax方式返回结果
             "Script" => "script",       // Script方式返回结果
         ),
