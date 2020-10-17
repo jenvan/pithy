@@ -23,7 +23,7 @@
 class Controller extends PithyBase {  
 
     // 路由实例
-    protected $router = null;        
+    protected $router = null;
 
     // 视图实例
     protected $view = null; 
@@ -38,7 +38,8 @@ class Controller extends PithyBase {
     public $template = "";
     
     // 动作参数
-    public $params = null;
+    private $_action = null;
+    private $_params = null;
     
     /**
      +----------------------------------------------------------
@@ -86,12 +87,15 @@ class Controller extends PithyBase {
      +----------------------------------------------------------
      */
     public function initialize() { 
+
+        // 设置 Pithy 的异常处理方法
+        Pithy::$terminator = array($this, "exception");
         
         // 获取路由类的实例
-        $this->router = Pithy::instance("Router"); 
+        $this->router = Pithy::instance("Router", true); 
         
         // 默认实例化系统自带的视图类(模板引擎)
-        $this->view = Pithy::instance("View", array($this));
+        $this->view = new View($this);
         
         // 子控制器是否存在预加载方法，可以在子控制器的 _init 中实例化其他视图类(模板引擎)，或者做一些其他初始操作
         method_exists($this, "_init") && call_user_func(array($this, "_init")); 
@@ -119,12 +123,11 @@ class Controller extends PithyBase {
             return $this->_error($msg); 
 
         // 视图类是否存在 show 方法，存在则调用
-        if (!PITHY_DEBUG && is_object($this->view) && method_exists($this->view, "show")){                   
+        if (!PITHY_DEBUG && is_object($this->view) && method_exists($this->view, "show")){
             return $this->error($msg);   
         }
 
-        // 否则触发错误
-        throw new Exception($msg);
+        exit($msg);
     } 
 
     /**         
@@ -134,7 +137,7 @@ class Controller extends PithyBase {
      * @return Controller
      *          
      */
-    static public function factory($id){ 
+    static public function factory($id){
 
         $exists = Pithy::import($id);
         if (!$exists){
@@ -144,11 +147,11 @@ class Controller extends PithyBase {
         }
         
         $class = preg_replace("/@.*$/", "", substr($id, strrpos($id, ".")+1));
-        $object = Pithy::instance($class);
+        $object = Pithy::instance($class, false);
         if (!is_object($object) || !is_subclass_of($object, "Controller")){
             Controller::singleton()->exception("控制器 {$class} 类型出错！");
-        }                       
-        
+        }
+
         return $object;    
     }   
     
@@ -167,19 +170,19 @@ class Controller extends PithyBase {
      +----------------------------------------------------------
      */
     final public function run($action="", $params=null, $enable=true){
+
+        //$this->debug("R={$this->route} G={$this->group} M={$this->module} A={$this->action} P=".json_encode($this->params));
         
-        // 赋值 
-        if (empty($action))
-            $action = $this->router->action;                    
-        if (is_null($params) || !is_array($params))
-            $params = $this->router->params;
-        if (!is_null($params) && !is_array($params))
-            $enable = (bool) $params;
+        // 参数判断
+        1 == func_num_args() && is_bool($action) && $enable = $action;
+        2 == func_num_args() && is_bool($params) && $enable = $params;
+        (empty($action) || !is_string($action))  && $action = $this->action;
+        (is_null($params) || !is_array($params)) && $params = $this->params;
         
-        //Pithy::debug("动作", $action);
-        //Pithy::debug("参数", $params);
+        //$this->debug("动作", $action, "参数", $params);
         
-        $this->params = $params;
+        $this->_action = $action;
+        $this->_params = $params;
 
         // 过滤(判断 action 是否符合条件)
         $filters = $this->filters();
@@ -260,7 +263,7 @@ class Controller extends PithyBase {
         $actionName = "action".ucfirst($action);
         if (method_exists($this, $actionName)){
             if (!method_exists($this, "_before") || $this->_before($action)){
-                Pithy::call($this, $actionName, $this->params);
+                Pithy::call($this, $actionName, $params);
                 method_exists($this, "_after") && $this->_after($action);
             }
             return;
@@ -290,7 +293,7 @@ class Controller extends PithyBase {
         // 动作不存在
         if (method_exists($this, "_miss")){
             //header("HTTP/1.0 404 Not Found");
-            return $this->_miss($action, $params);
+            return $this->_miss($action);
         }
         
         return $this->exception('控制器 '.get_class($this).' 的动作 '.$action.' 不存在！');
@@ -304,18 +307,18 @@ class Controller extends PithyBase {
      * @access public
      +----------------------------------------------------------
      * @param string $route 路由
-     * @param array $params 参数      
+     * @param array $params 参数
+     * @param bool $enable 是否执行过滤和验证
      +----------------------------------------------------------
      * @return mixed
      +----------------------------------------------------------
      */
-    final public function call($route, $params=null){      
-
+    final public function call($route, $params=null, $enable=true){
         $arr = $this->router->parse($route);
-
         !empty($arr["group"]) && Pithy::import("~.@".$arr["group"].".extend.*");
-        
-        self::factory($arr["controller"])->run($arr["action"], $params, false); 
+        $obj = self::factory($arr["controller"]);
+        $obj->router->update($route, $params);
+        $obj->run($arr["action"], $params, $enable); 
     }
   
     /**
@@ -335,8 +338,11 @@ class Controller extends PithyBase {
         return $this->router->module;
     }
     function getAction(){
-        return $this->router->action;
-    }  
+        return !is_null($this->_action) ? $this->_action : $this->router->action;
+    }
+    function getParams(){
+        return !is_null($this->_params) ? $this->_params : $this->router->params;
+    }
 
 
     /**

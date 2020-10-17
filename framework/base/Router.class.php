@@ -46,17 +46,8 @@ class Router extends PithyBase {
         $url = substr($url, 0, 1) == "/" ? $url : preg_replace("/^(http[s]?:\/\/[^\/]+)/i", "", $url);
         $url = preg_replace("/(\/+)/", "/", $url);
 
-        // 分解 url
-        $arr = $this->parse($url, $_GET); 
-
-        // 赋值
-        $this->_file = $arr["file"];
-        $this->_controller = $arr["controller"]; 
-        $this->_route = $arr["route"];  
-        $this->_group = $arr["group"];
-        $this->_module = $arr["module"];
-        $this->_action = $arr["action"]; 
-        $this->_params = $arr["params"];
+        // 更新路由
+        $this->update($url); 
         
         /*Pithy::debug("路由", array(
             "url" => $url,
@@ -69,6 +60,23 @@ class Router extends PithyBase {
             "params" => $this->params,
         ));*/
         
+    }
+
+    public function update($route, $params = null){
+        
+        !is_array($params)  && $params = $_GET;
+
+        // 分解
+        $arr = $this->parse($route, $params); 
+
+        // 赋值
+        $this->_file = $arr["file"];
+        $this->_controller = $arr["controller"]; 
+        $this->_route = $arr["route"];  
+        $this->_group = $arr["group"];
+        $this->_module = $arr["module"];
+        $this->_action = $arr["action"]; 
+        $this->_params = $arr["params"];
     }
 
     public function getFile(){

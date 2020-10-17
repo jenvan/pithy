@@ -25,10 +25,6 @@ class View extends PithyBase {
 
     // 控制器实例
     protected $controller = null;
-
-    // 路由实例
-    protected $router = null;
-    protected $group, $module, $action;
     
     // 视图数据
     public $data = array();  
@@ -51,13 +47,19 @@ class View extends PithyBase {
     +----------------------------------------------------------
     */
     public function initialize($controller) {
-
-        $this->controller = $controller;                                                              
-
-        $this->router = Pithy::instance("Router");
-        $this->group = $this->router->group;                                                      
-        $this->module = $this->router->module;                                                      
-        $this->action = $this->router->action;             
+        $this->controller = $controller;
+    }
+    public function getGroup(){
+        return $this->controller->group;
+    }
+    public function getModule(){
+        return $this->controller->module;
+    }
+    public function getAction(){
+        return $this->controller->action;
+    }
+    public function getParams(){
+        return $this->controller->params;
     }
 
     /**
@@ -71,7 +73,7 @@ class View extends PithyBase {
     * @return string                                             
     +----------------------------------------------------------
     */
-    private function getPath($template) {       
+    private function getPath($template) {
                                        
         $group = empty($this->group) ? "" : "@" . $this->group;
         if ( ($pos = strpos($template, "@")) > 0){
@@ -145,7 +147,7 @@ class View extends PithyBase {
 
         // 分析参数并给相关变量赋值
         $template = $this->template;  
-        $params = $this->router->params;
+        $params = $this->params;
         if (!empty($arg1) && is_string($arg1))
             $template = $arg1;                
         if (!empty($arg2) && is_string($arg2))
@@ -372,7 +374,7 @@ class View extends PithyBase {
     public function redirect($url) {
         Pithy::config("Output.Cache.Expires", 0);
         if (isset($url) && !empty($url)){
-            is_array($url) && $url = $this->router->build($url);
+            is_array($url) && $url = Pithy::instance("Router")->build($url);
             Pithy::redirect($url);
             exit;
         }

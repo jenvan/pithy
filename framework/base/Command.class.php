@@ -258,9 +258,9 @@ class Command extends PithyBase {
         $args = func_get_args();
         is_bool($args[$num-1]) && $force = array_slice($args, -1) && array_splice($args, -1);
         foreach($args as $arg){
-            $msg .= !is_array($arg) ? $arg : print_r($arg, true);
+            $msg .= !is_array($arg) ? $arg : var_export($arg, true);
         }
-        if (PITHY_DEBUG || $force === true || $this->force){
+        if ($force === true || $this->force){
             $msg = preg_replace("/([^#]\s*)#(\s*[^#])/m", "$1\1$2", $msg);
             $msg = str_replace("\1", "#", str_replace("#", PHP_EOL, $msg));
             $msg = IS_WIN ? mb_convert_encoding($msg, "gbk", "utf-8") : $msg;
@@ -270,7 +270,7 @@ class Command extends PithyBase {
     public function notice(){
         $args = func_get_args();
         foreach($args as $i => $arg){
-            $args[$i] = is_string($arg) ? $arg : print_r($arg, true);
+            $args[$i] = is_string($arg) ? $arg : var_export($arg, true);
         }
         $msg = implode(" ", $args);
         $this->log($msg);
@@ -279,7 +279,7 @@ class Command extends PithyBase {
     public function error(){
         $args = func_get_args();
         foreach($args as $i => $arg){
-            $args[$i] = is_string($arg) ? $arg : print_r($arg, true);
+            $args[$i] = is_string($arg) ? $arg : var_export($arg, true);
         }
         $msg = "!!! ".implode(" ", $args)." !!!";
         $this->log($msg);
