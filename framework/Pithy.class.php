@@ -379,13 +379,16 @@ class Pithy{
         // 获取单个文件的路径和类名
         $filepath = $name;
         if (in_array($name[0], array("#","~")) && isset($name[1]) && $name[1] == "."){                                  
-            $name = strstr($name, "@") == "" ? $name : preg_replace("/(.{2})([^@]*)@(.*)/", "\$1\@$3.\$2", $name);
+            $name = strstr($name, "@") == "" ? $name : preg_replace("/(.{2})([^@]*)@(.*)/", "$1@$3.$2", $name);
             $filepath = str_replace(".", "/", $name).".class.php";                     
-        }                           
-        $class = basename(basename($filepath, ".php"), ".class");    
+        }
+        $class = basename(basename($filepath, ".php"), ".class");
           
         // 判断文件是否存在，并暂存数据
         $exists = $data[$name] = self::exists($filepath);
+        if (isset(self::$_alias[$class]) && self::$_alias[$class] != $filepath)
+            return trigger_error("Class [$class] is already defined! ", E_USER_ERROR);
+        
         $exists && self::$_alias[$class] = $filepath;
 
         return $exists;
@@ -439,30 +442,30 @@ class Pithy{
 
         $singleton = (!is_array($args) && is_null($args)) ? (boolean) $args : $singleton;
 
-        if (!$singleton || !isset($data[$class])){                
-            if (class_exists($class)){                     
-                if (!is_array($args) || empty($args)){                        
-                    $data[$class] = new $class();   
-                }
-                else{                        
-                    $keys = array_keys($args);    
-                    $params = '$args["'.(count($keys) > 1 ? implode('"],$args["',$keys) : $keys[0]).'"]';
-                    eval('$data[$class] = new $class('.$params.');');
+        if ($singleton && isset($data[$class]))
+            return $data[$class];
 
-                    /*
-                      // Note: ReflectionClass::newInstanceArgs() is available for PHP 5.1.3+
-                      // $class=new ReflectionClass($class);
-                      // $object=$class->newInstanceArgs($args);
-                      $_class=new ReflectionClass($class);
-                      $data[$class]=call_user_func_array(array($_class,'newInstance'),$args);
-                      */
-                }                        
-            }                      
-            else{
-                return trigger_error("Class ($class) is not defined!", E_USER_ERROR);
-            }
-        }            
-        return $data[$class];
+        if (!class_exists($class))
+            return trigger_error("Class ($class) is not defined!", E_USER_ERROR);
+
+        if (!is_array($args) || empty($args)){
+            $object = new $class();   
+        }
+        else{
+            $keys = array_keys($args);
+            $params = '$args["'.(count($keys) > 1 ? implode('"],$args["',$keys) : $keys[0]).'"]';
+            eval('$object = new $class('.$params.');');
+
+            /*
+            // Note: ReflectionClass::newInstanceArgs() is available for PHP 5.1.3+
+            $_class = new ReflectionClass($class);
+            $object = $_class->newInstanceArgs($args);
+            $object = call_user_func_array(array($_class, "newInstance"),$args);
+            */
+        }
+        $singleton && $data[$class] = $object;
+
+        return $object;
     } 
     
     /**
