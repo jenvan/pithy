@@ -63,8 +63,7 @@ class Router extends PithyBase {
     }
 
     public function update($route, $params = null){
-        
-        !is_array($params)  && $params = $_GET;
+        !is_array($params) && $params = Pithy::merge($_GET, $_POST);
 
         // 分解
         $arr = $this->parse($route, $params); 
@@ -77,6 +76,8 @@ class Router extends PithyBase {
         $this->_module = $arr["module"];
         $this->_action = $arr["action"]; 
         $this->_params = $arr["params"];
+
+        return $arr;
     }
 
     public function getFile(){
@@ -110,9 +111,7 @@ class Router extends PithyBase {
             $this->_module = Pithy::config("Router.default.module");
         return $this->_module;
     }
-    
- 
-        
+         
     public function getAction(){
         if (empty($this->_action))
             $this->_action = Pithy::config("Router.default.action");
@@ -122,7 +121,7 @@ class Router extends PithyBase {
     public function getParams(){
         if (!is_array($this->_params))
             $this->_params = array();
-        return Pithy::merge($this->_params, $_POST);
+        return Pithy::merge(Pithy::merge($_GET, $_POST), $this->_params);
     }
 
 
@@ -196,11 +195,10 @@ class Router extends PithyBase {
 
         }
 
-        // 保存
         $result = array(
             "file" => $file,
             "controller" => "~.controller.".ucfirst($module)."Controller".( empty($group) ? "" : "@{$group}" ), 
-            "route" => ( empty($group) ? "" : "/{$group}" ) . "/{$module}/{$action}",                            
+            "route" => ( empty($group) ? "" : "/{$group}" ) . "/{$module}/{$action}",
             "group" => $group,    
             "module" => $module,
             "action" => $action,

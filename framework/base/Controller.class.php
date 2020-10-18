@@ -93,7 +93,8 @@ class Controller extends PithyBase {
         
         // 获取路由类的实例
         $this->router = Pithy::instance("Router", true); 
-        
+        //$this->debug(">INIT : R={$this->route} G={$this->group} M={$this->module} A={$this->action} P=".json_encode($this->params));
+
         // 默认实例化系统自带的视图类(模板引擎)
         $this->view = new View($this);
         
@@ -147,7 +148,7 @@ class Controller extends PithyBase {
         }
         
         $class = preg_replace("/@.*$/", "", substr($id, strrpos($id, ".")+1));
-        $object = Pithy::instance($class, false);
+        $object = Pithy::instance($class);
         if (!is_object($object) || !is_subclass_of($object, "Controller")){
             Controller::singleton()->exception("控制器 {$class} 类型出错！");
         }
@@ -170,19 +171,18 @@ class Controller extends PithyBase {
      +----------------------------------------------------------
      */
     final public function run($action="", $params=null, $enable=true){
-
-        //$this->debug("R={$this->route} G={$this->group} M={$this->module} A={$this->action} P=".json_encode($this->params));
         
         // 参数判断
         1 == func_num_args() && is_bool($action) && $enable = $action;
         2 == func_num_args() && is_bool($params) && $enable = $params;
         (empty($action) || !is_string($action))  && $action = $this->action;
-        (is_null($params) || !is_array($params)) && $params = $this->params;
-        
-        //$this->debug("动作", $action, "参数", $params);
+        (is_null($params) || !is_array($params)) && $params = array();
         
         $this->_action = $action;
-        $this->_params = $params;
+        $this->_params = $params = Pithy::merge($this->params, $params);
+
+        //$this->debug("  RUN : {$action}\n   CP : ".json_encode($params)."\n   RP : ".json_encode($this->router->params));
+
 
         // 过滤(判断 action 是否符合条件)
         $filters = $this->filters();
@@ -314,11 +314,9 @@ class Controller extends PithyBase {
      +----------------------------------------------------------
      */
     final public function call($route, $params=null, $enable=true){
-        $arr = $this->router->parse($route);
+        $arr = $this->router->update($route);
         !empty($arr["group"]) && Pithy::import("~.@".$arr["group"].".extend.*");
-        $obj = self::factory($arr["controller"]);
-        $obj->router->update($route, $params);
-        $obj->run($arr["action"], $params, $enable); 
+        self::factory($arr["controller"])->run($arr["action"], $params, $enable); 
     }
   
     /**
