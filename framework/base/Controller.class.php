@@ -156,6 +156,24 @@ class Controller extends PithyBase {
         return $object;    
     }   
     
+    /**
+     +----------------------------------------------------------
+     * 运行外部控制器的 action
+     +----------------------------------------------------------
+     * @access public
+     +----------------------------------------------------------
+     * @param string $route 路由
+     * @param array $params 参数
+     * @param bool $enable 是否执行过滤和验证
+     +----------------------------------------------------------
+     * @return mixed
+     +----------------------------------------------------------
+     */
+    final public function call($route, $params=null, $enable=true){
+        $arr = $this->router->update($route);
+        !empty($arr["group"]) && Pithy::import("~.@".$arr["group"].".extend.*");
+        self::factory($arr["controller"])->run($arr["action"], $params, $enable); 
+    }
 
     /**
      +----------------------------------------------------------
@@ -300,24 +318,6 @@ class Controller extends PithyBase {
     }
 
 
-    /**
-     +----------------------------------------------------------
-     * 运行外部控制器的 action
-     +----------------------------------------------------------
-     * @access public
-     +----------------------------------------------------------
-     * @param string $route 路由
-     * @param array $params 参数
-     * @param bool $enable 是否执行过滤和验证
-     +----------------------------------------------------------
-     * @return mixed
-     +----------------------------------------------------------
-     */
-    final public function call($route, $params=null, $enable=true){
-        $arr = $this->router->update($route);
-        !empty($arr["group"]) && Pithy::import("~.@".$arr["group"].".extend.*");
-        self::factory($arr["controller"])->run($arr["action"], $params, $enable); 
-    }
   
     /**
      * 获取路由参数

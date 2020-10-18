@@ -62,6 +62,7 @@ class Router extends PithyBase {
         
     }
 
+    // 更新路由
     public function update($route, $params = null){
         !is_array($params) && $params = Pithy::merge($_GET, $_POST);
 
@@ -79,51 +80,6 @@ class Router extends PithyBase {
 
         return $arr;
     }
-
-    public function getFile(){
-        return $this->_file;
-    }
-    
-    public function getController(){
-        return $this->_controller;  
-    }  
-
-    public function getRoute(){
-        return $this->_route;
-    } 
-    
-    public function getGroup(){
-        $host = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
-        $groups = Pithy::config("Router.groups");
-        foreach ($groups as $group => $list){
-            if (is_array($list) && in_array($host, $list)){
-                $this->_group = $group;
-                break;
-            }
-        }      
-        if (empty($this->_group))
-            $this->_group = Pithy::config("Router.default.group");
-        return $this->_group;
-    }
-    
-    public function getModule(){
-        if (empty($this->_module))
-            $this->_module = Pithy::config("Router.default.module");
-        return $this->_module;
-    }
-         
-    public function getAction(){
-        if (empty($this->_action))
-            $this->_action = Pithy::config("Router.default.action");
-        return $this->_action;  
-    }  
-
-    public function getParams(){
-        if (!is_array($this->_params))
-            $this->_params = array();
-        return Pithy::merge(Pithy::merge($_GET, $_POST), $this->_params);
-    }
-
 
     // 将url地址解析成参数
     public function parse($url, $params=array()){
@@ -195,7 +151,8 @@ class Router extends PithyBase {
 
         }
 
-        $result = array(
+        // 返回
+        return array(
             "file" => $file,
             "controller" => "~.controller.".ucfirst($module)."Controller".( empty($group) ? "" : "@{$group}" ), 
             "route" => ( empty($group) ? "" : "/{$group}" ) . "/{$module}/{$action}",
@@ -204,9 +161,6 @@ class Router extends PithyBase {
             "action" => $action,
             "params" => $params,
         );
-
-        // 返回    
-        return $result; 
     }
 
     // 将参数构建成url地址
@@ -214,5 +168,45 @@ class Router extends PithyBase {
         is_array($route) && isset($route["params"]) && $params = $route["params"];
         is_array($route) && $route = "/".(isset($route["group"]) ? $route["group"] : $this->group)."/".(isset($route["module"]) ? $route["module"] : $this->module)."/".(isset($route["action"]) ? $route["action"] : $this->action);
         return preg_replace("/^(\/+)/", "/", $route) . "?" . http_build_query($params);
+    }
+    
+
+    // 获取路由相关参数
+    public function getFile(){
+        return $this->_file;
+    }
+    public function getController(){
+        return $this->_controller;  
+    } 
+    public function getRoute(){
+        return $this->_route;
+    } 
+    public function getGroup(){
+        $host = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
+        $groups = Pithy::config("Router.groups");
+        foreach ($groups as $group => $list){
+            if (is_array($list) && in_array($host, $list)){
+                $this->_group = $group;
+                break;
+            }
+        }      
+        if (empty($this->_group))
+            $this->_group = Pithy::config("Router.default.group");
+        return $this->_group;
+    }
+    public function getModule(){
+        if (empty($this->_module))
+            $this->_module = Pithy::config("Router.default.module");
+        return $this->_module;
+    } 
+    public function getAction(){
+        if (empty($this->_action))
+            $this->_action = Pithy::config("Router.default.action");
+        return $this->_action;  
+    }
+    public function getParams(){
+        if (!is_array($this->_params))
+            $this->_params = array();
+        return Pithy::merge(Pithy::merge($_GET, $_POST), $this->_params);
     }
 }
