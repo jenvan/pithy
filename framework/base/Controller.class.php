@@ -114,8 +114,6 @@ class Controller extends PithyBase {
      +----------------------------------------------------------
      */
     public function exception($msg){ 
-        
-        //Pithy::debug($_SERVER);
     
         // 子类中是否存在 _exception 或 _error 方法，存在则调用
         if (method_exists($this, "_exception"))
@@ -124,8 +122,8 @@ class Controller extends PithyBase {
             return $this->_error($msg); 
 
         // 视图类是否存在 show 方法，存在则调用
-        if (!PITHY_DEBUG && is_object($this->view) && method_exists($this->view, "show")){
-            return $this->error($msg);   
+        if (is_object($this->view) && method_exists($this->view, "show")){
+            return $this->error($msg);
         }
 
         exit($msg);
@@ -142,7 +140,7 @@ class Controller extends PithyBase {
 
         $exists = Pithy::import($id);
         if (!$exists){
-            //header("HTTP/1.0 404 Not Found");
+            header("HTTP/1.0 404 Not Found");
             //Pithy::debug("404 NOT FOUND:", $_SERVER["REQUEST_URI"]);
             Controller::singleton()->exception("控制器 {$id} 不存在！");
         }
@@ -310,10 +308,10 @@ class Controller extends PithyBase {
 
         // 动作不存在
         if (method_exists($this, "_miss")){
-            //header("HTTP/1.0 404 Not Found");
             return $this->_miss($action);
         }
-        
+
+        header("HTTP/1.0 404 Not Found");
         return $this->exception('控制器 '.get_class($this).' 的动作 '.$action.' 不存在！');
     }
 
