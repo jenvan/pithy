@@ -241,6 +241,22 @@ class Pithy{
 
 
         /***********************************/ 
+        // 输入过滤 
+        /***********************************/   
+        Pithy::benchmark("input");
+
+        // 输入构造钩子：可以替换系统自带的输入类
+        if ($hook->call("input_init") == true){
+            Pithy::$inputer = Input::singleton();
+        }
+
+        // 输入过滤器钩子：可以挂载 参数过滤 、编码转换、安全检测 操作
+        if ($hook->call("input_filter") == true){
+            Pithy::$inputer->filter();     
+        }
+
+
+        /***********************************/ 
         // 路由 
         /***********************************/ 
         Pithy::benchmark("router"); 
@@ -252,7 +268,7 @@ class Pithy{
         if ($router->group != ""){
             Pithy::import("~.@".$router->group.".extend.*");
         }
-        
+
 
         /***********************************/ 
         // 缓存输出
@@ -271,23 +287,7 @@ class Pithy{
 
         // 本次请求如果是输出缓存内容，则退出
         if (isset($rtn) && $rtn)
-            return; 
-
-
-        /***********************************/ 
-        // 输入过滤 
-        /***********************************/   
-        Pithy::benchmark("input");
-
-        // 输入构造钩子：可以替换系统自带的输入类
-        if ($hook->call("input_init") == true){
-            Pithy::$inputer = Input::singleton();
-        }
-
-        // 输入过滤器钩子：可以挂载 参数过滤 、编码转换、安全检测 操作
-        if ($hook->call("input_filter") == true){
-            Pithy::$inputer->filter();     
-        }                                
+            return;                                
 
 
         /***********************************/ 
