@@ -317,6 +317,8 @@ class View extends PithyBase {
       
         // 临时关闭静态页面缓存
         Pithy::config("Output.Cache.Expires", 0);  
+
+        !headers_sent() && header("X-Powered-By: PithyPHP ".PITHY_VERSION);
         
         // 判断参数
         $args = func_get_args();

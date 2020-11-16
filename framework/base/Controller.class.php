@@ -194,7 +194,7 @@ class Controller extends PithyBase {
         (empty($action) || !is_string($action))  && $action = $this->action;
         (is_null($params) || !is_array($params)) && $params = array();
         
-        $this->_action = $action;
+        $this->_action = $action = strtolower($action);
         $this->_params = $params = Pithy::merge($this->params, $params);
 
         //$this->debug("  RUN : {$action}\n   CP : ".json_encode($params)."\n   RP : ".json_encode($this->router->params));
@@ -210,7 +210,7 @@ class Controller extends PithyBase {
 
                 // 判断是否符合过滤条件
                 $execute = true;
-                if (strstr($filter, "+") != "" || strstr($filter, "-") != ""){        
+                if (strstr($filter, "+") != "" || strstr($filter, "-") != ""){
                     $gap = strstr($filter, "+") == "" ? "-" : "+";
                     list($filter, $actions) = explode($gap, $filter);
                     $actions = explode(",", $actions);
