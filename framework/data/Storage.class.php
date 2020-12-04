@@ -57,6 +57,11 @@ class Storage{
     private $driver = null;
     private $basePath="./data", $delimiter="\r\n\1", $startCode="<?php exit;?>\r\n";
 
+    static public function singleton($options="Memcache"){
+        $class = __CLASS__;
+        return new $class($options, true);
+    }
+
     public function __construct($options="Memcache", $singleton=false){  
 
         // 获取配置，共有三种配置(优先级从前到后) 1.参数配置 2.配置文件中别名配置 3.配置文件中默认配置
@@ -94,21 +99,20 @@ class Storage{
         if( !in_array(strtolower($this->className), array("filecache","filequeue","memcache","memcachedb","memcacheq")) )
             return trigger_error("Storage type ($type) not support!",E_USER_ERROR);   
 
-        // 实例化
-        if( $singleton ){
-            ksort($this->options);
-            $identify = $this->className."-".md5(implode("",$this->options));
-            if( isset(self::$instance[$identify]) ) 
-                $this->driver = self::$instance[$identify]; 
-        }        
+        // 实例化     
+        ksort($this->options);
+        $identify = $this->className."-".md5(implode("",$this->options));
+        if($singleton && isset(self::$instance[$identify]) ) 
+            $this->driver = self::$instance[$identify]; 
+        
         if( !is_object($this->driver) ){
             if( in_array(strtolower($this->className), array("filecache","filequeue")) )
                 $this->driver = $this; 
             if( in_array(strtolower($this->className), array("memcache","memcachedb","memcacheq")))
-                $this->driver = new Memcache;         
+                $this->driver = new Memcache;
+            $this->connect();
+            self::$instance[$identify] = $this->driver;
         }
-
-        $this->connect();
     }
 
     public function __call($method,$args){

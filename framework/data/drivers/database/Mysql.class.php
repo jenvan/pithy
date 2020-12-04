@@ -33,7 +33,7 @@ class Mysql extends Database {
      +----------------------------------------------------------
      */
     public function connect($config = '', $linkNum = 0) {
-         
+
         if (!isset($this->links[$linkNum])) {
             
             empty($config) && $config = $this->config;
@@ -50,9 +50,10 @@ class Mysql extends Database {
             // 强制不设定MySql模式（如不作输入检测、错误提示、语法模式检查等）应该能提高性能
             mysqli_query($this->links[$linkNum], "SET sql_mode=''");
      
-            // 标记连接成功
-            $this->connected = true;
         }
+
+        // 标记连接成功
+        $this->connected = true;
 
         return $this->links[$linkNum];
     }
@@ -100,14 +101,14 @@ class Mysql extends Database {
         
         $this->initConnect(false);
         if (!$this->linkID) 
-            return false;
+            return self::error($this->getLastError(), "ERROR");
  
         $this->free();
 
         $this->sql = $str;
         array_push($this->sqls, $str);
         $this->count("query", true);
-
+        
         $this->queryID = mysqli_query($this->linkID, $str);
         if (false === $this->queryID) {
             return self::error($this->getLastError(), "ERROR");
@@ -140,7 +141,7 @@ class Mysql extends Database {
         
         $this->initConnect(true);
         if (!$this->linkID)
-            return false;
+            return self::error($this->getLastError(), "ERROR");
 
         $this->free();
 

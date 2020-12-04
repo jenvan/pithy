@@ -21,6 +21,8 @@
  +------------------------------------------------------------------------------
  */
 
+@ini_set("memory_limit", "512M");
+
 // 日志处理
 $GLOBALS["pithy_log_file"] = "cli";
 $GLOBALS["pithy_log_content"] = array();

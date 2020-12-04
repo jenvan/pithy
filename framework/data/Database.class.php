@@ -210,7 +210,7 @@ class Database
         // 数据库类名    
         $class = ucwords(strtolower($config["type"]));
         $hash = md5(serialize($config)); 
-        if( isset(self::$instance[$hash]) )
+        if ($singleton && isset(self::$instance[$hash]) )
             return self::$instance[$hash];
 
         // 包含驱动类文件
@@ -218,17 +218,18 @@ class Database
         if( !is_file($filepath) ){
             return self::error("Class file (".basename($filepath).") not found!"); 
         }
-        require( $filepath );
+        require_once( $filepath );
 
         // 实例化驱动类
         if( class_exists($class) ){
-            self::$instance[$hash] = $driver = new $class();                
+            $driver = new $class();
             $driver->config = $config;
             $driver->dbType = strtoupper($config["type"]); 
+            self::$instance[$hash] = $driver;
             return $driver;
         }
 
-        return self::error("Not support database : ". $config['type']);                                                                              
+        return self::error("Not support database : ". $config['type']);
     }                  
 
     /**
