@@ -37,6 +37,7 @@ class HTTP{
                     foreach($fields as $k => $v) {
                         if ("@" == substr($v, 0, 1)) {
                             $multipart = true;
+                            $options[CURLOPT_SAFE_UPLOAD] = 0;
                             break; 
                         }
                     }
