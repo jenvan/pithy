@@ -104,8 +104,8 @@ class Router extends PithyBase {
         $arr = parse_url($path);
         if (!empty($arr["query"])){
             parse_str($arr["query"], $query);
-            if (isset($query["r"]))
-                $route = $query["r"];
+            if (isset($query["_r"]))
+                $route = $query["_r"];
         } 
 
         // 剔除
