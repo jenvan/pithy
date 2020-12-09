@@ -49,7 +49,7 @@ class Router extends PithyBase {
         // 更新路由
         $this->update($url); 
         
-        /*Pithy::debug("路由", array(
+        /*$this->debug("ROUTER:", array(
             "url" => $url,
             "file" => $this->file,
             "controller" => $this->controller,
@@ -182,10 +182,13 @@ class Router extends PithyBase {
         return $this->_route;
     } 
     public function getGroup(){
-        $host = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
+        $domain = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
+        $wildcard = preg_replace("/^[^\.]+\.(.+)$/i", "*.$1", $domain);
         $groups = Pithy::config("Router.groups");
         foreach ($groups as $group => $list){
-            if (is_array($list) && in_array($host, $list)){
+            if (!is_array($list) || empty($list))
+                continue;
+            if (in_array($domain, $list) || in_array($wildcard, $list)){
                 $this->_group = $group;
                 break;
             }
