@@ -47,10 +47,16 @@ return array(
         'Filters' => array(
             array(
                 "enable" => true,
-                "intro" => "检查表单中的 token 值",
+                "intro" => "检查 SqlInject",
                 "class" => "Input",
-                "method" => "filterToken",
-            ),    
+                "method" => "filterSqlInject",
+            ),
+            array(
+                "enable" => true,
+                "intro" => "检查 Xss",
+                "class" => "Input",
+                "method" => "filterXss",
+            ),
         ),
         
     ),

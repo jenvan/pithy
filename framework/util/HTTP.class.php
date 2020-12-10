@@ -37,8 +37,10 @@ class HTTP{
                     foreach($fields as $k => $v) {
                         if ("@" == substr($v, 0, 1)) {
                             $multipart = true;
-                            $options[CURLOPT_SAFE_UPLOAD] = 0;
-                            break; 
+                            if (!class_exists("CURLFile"))
+                                $options[CURLOPT_SAFE_UPLOAD] = false;
+                            else
+                                $fields[$k] = new CURLFile(ltrim($v, "@"));
                         }
                     }
                     unset($k, $v);

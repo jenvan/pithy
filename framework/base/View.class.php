@@ -373,11 +373,11 @@ class View extends PithyBase {
     * @return void
     +----------------------------------------------------------
     */
-    public function redirect($url) {
+    public function redirect($url, $interval = 0) {
         Pithy::config("Output.Cache.Expires", 0);
         if (isset($url) && !empty($url)){
             is_array($url) && $url = Pithy::instance("Router")->build($url);
-            Pithy::redirect($url);
+            Pithy::redirect($url, $interval);
             exit;
         }
         throw new Exception("跳转地址错误！");
