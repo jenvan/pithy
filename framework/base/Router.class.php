@@ -22,9 +22,6 @@
  */
 class Router extends PithyBase {
 
-    public $mode = "";
-    public $groups = array();
-
     private $_file;
     private $_controller;
     private $_route;
@@ -37,10 +34,6 @@ class Router extends PithyBase {
 
         !isset($_SERVER["HTTP_HOST"]) && $_SERVER["HTTP_HOST"] = $_SERVER["SERVER_NAME"];
 
-        // 获取配置
-        $this->mode = Pithy::config("Router.mode");
-        $this->groups = array_keys(Pithy::config("Router.groups"));
-
         // 获取 url
         $url = $_SERVER["REQUEST_URI"];
         $url = substr($url, 0, 1) == "/" ? $url : preg_replace("/^(http[s]?:\/\/[^\/]+)/i", "", $url);
@@ -49,7 +42,9 @@ class Router extends PithyBase {
         // 更新路由
         $this->update($url); 
         
-        /*$this->debug("ROUTER:", array(
+        return;
+        
+        $this->debug("ROUTER:", array(
             "url" => $url,
             "file" => $this->file,
             "controller" => $this->controller,
@@ -58,7 +53,7 @@ class Router extends PithyBase {
             "module" => $this->module,
             "action" => $this->action,
             "params" => $this->params,
-        ));*/
+        ));
         
     }
 
@@ -95,7 +90,7 @@ class Router extends PithyBase {
         $folder = dirname($file);
         $len1 = strlen($file);
         $len2 = strlen($folder);
-        $path = substr($url, 0, $len1) == $file ? substr($url, $len1) : substr($url, $len2);   
+        $path = substr($url, 0, $len1) == $file ? substr($url, $len1) : substr($url, $len2);
 
         // 通过 pathinfo || rewrite 方式获取 route
         $route = strstr($path, "?") == "" ? $path : substr($path, 0, strpos($path, "?"));
@@ -110,6 +105,14 @@ class Router extends PithyBase {
 
         // 剔除
         if (!empty($route)){
+            $route = "/".$route;
+            $map = Pithy::config("Router.Map");
+            foreach ($map as $key => $var){
+                if (preg_match("/{$var}/i", $route, $matches)){
+                    $route = "/".str_replace($matches[0], "", $route);
+                    $params[$key] = $matches[1];
+                }
+            }
             $route = ltrim($route, "/");
         }
 
@@ -120,7 +123,8 @@ class Router extends PithyBase {
             $arr = explode("/", rtrim($route, "/"));
 
             // 获取 group
-            if (count($arr) >= 1 && in_array($arr[0], $this->groups)){
+            $groups = array_keys(Pithy::config("Router.Groups"));
+            if (count($arr) >= 1 && in_array($arr[0], $groups)){
                 $group = $arr[0];
                 unset($arr[0]);
                 $arr = array_values($arr);
@@ -184,7 +188,7 @@ class Router extends PithyBase {
     public function getGroup(){
         $domain = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
         $wildcard = preg_replace("/^[^\.]+\.(.+)$/i", "*.$1", $domain);
-        $groups = Pithy::config("Router.groups");
+        $groups = Pithy::config("Router.Groups");
         foreach ($groups as $group => $list){
             if (!is_array($list) || empty($list))
                 continue;
@@ -194,17 +198,17 @@ class Router extends PithyBase {
             }
         }      
         if (empty($this->_group))
-            $this->_group = Pithy::config("Router.default.group");
+            $this->_group = Pithy::config("Router.Default.group");
         return $this->_group;
     }
     public function getModule(){
         if (empty($this->_module))
-            $this->_module = Pithy::config("Router.default.module");
+            $this->_module = Pithy::config("Router.Default.module");
         return $this->_module;
     } 
     public function getAction(){
         if (empty($this->_action))
-            $this->_action = Pithy::config("Router.default.action");
+            $this->_action = Pithy::config("Router.Default.action");
         return $this->_action;  
     }
     public function getParams(){

@@ -5,7 +5,7 @@ if( !defined('PITHY') ) exit;
 return array(
            
     // 命令行设置
-    'Command' => array(                                   
+    'Command' => array(
         'Root' => PITHY_APPLICATION."command/",
         'Map' => array(
             
@@ -19,7 +19,7 @@ return array(
         "Enable" => false,
 
         // init 钩子
-        "init" => array(
+        "Init" => array(
             "enable" => true,
             "list" => array(
             
@@ -29,15 +29,17 @@ return array(
     ),
 
     // Router设置
-    'Router'=>array(         
-        'mode' => 'get', // 路由模式： get || pathinfo || rewrite         
-        'groups' => array(),
-        'default' => array(
+    'Router'=>array(
+        'Groups' => array(),
+        'Default' => array(
             'group' => '',
             'module' => 'site',
             'action' => 'index', 
         ),
-    ),    
+        'Map' => array(
+            'uid' => '\/_([^\/]+)_\/'
+        ),
+    ),
 
 
     // Input设置
