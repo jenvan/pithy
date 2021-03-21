@@ -309,6 +309,7 @@ class Command extends PithyBase {
     public function halt($msg = ""){
         !empty($msg) && $this->notice($msg);
         log2file();
+        PITHY_DEBUG && sleep(3);
         exit;
     }
 
