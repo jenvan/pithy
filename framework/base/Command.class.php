@@ -270,12 +270,15 @@ class Command extends PithyBase {
         }
     }
     public function notice(){
+        $force = false;
+        $num =func_num_args();
         $args = func_get_args();
+        is_bool($args[$num-1]) && $force = array_slice($args, -1) && array_splice($args, -1);
         foreach($args as $i => $arg){
             $args[$i] = is_string($arg) ? $arg : var_export($arg, true);
         }
         $msg = implode(" ", $args);
-        $this->log($msg);
+        $this->log($msg, $force);
         return $this->show("#".$msg, true);
     }
     public function error(){
@@ -284,7 +287,7 @@ class Command extends PithyBase {
             $args[$i] = is_string($arg) ? $arg : var_export($arg, true);
         }
         $msg = "!!! ".implode(" ", $args)." !!!";
-        $this->log($msg);
+        $this->log($msg, true);
         return $this->show("#".$msg, true);
     }
     
@@ -292,14 +295,15 @@ class Command extends PithyBase {
      * 记录日志信息
      * 
      * @param mixed $msg    日志内容
+     * @param mixed $false  强制实时记录
      */    
-    public function log($msg){
+    public function log($msg, $force = false){
         empty($this->logName) && $this->logName = get_class($this).($this->logAlone ? "-".$this->_action : "");
         $GLOBALS["pithy_log_file"] = $this->logName;
         $msg = date("Y-m-d H:i:s") . " " . preg_replace(array("/^(#+)/","/(#+)$/"), array("",""), $msg);
         is_array($GLOBALS["pithy_log_content"]) || $GLOBALS["pithy_log_content"] = array();
         array_push($GLOBALS["pithy_log_content"], $msg);
-        count($GLOBALS["pithy_log_content"]) >= 1000 && log2file();
+        ($force || count($GLOBALS["pithy_log_content"]) >= 1000) && log2file();
     }
     
     /**
