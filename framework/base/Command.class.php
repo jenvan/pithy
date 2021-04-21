@@ -268,6 +268,7 @@ class Command extends PithyBase {
             $msg = IS_WIN ? mb_convert_encoding($msg, "gbk", "utf-8") : $msg;
             echo $msg;
         }
+        return 0;
     }
     public function notice(){
         $force = false;
