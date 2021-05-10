@@ -10,7 +10,7 @@
 // +----------------------------------------------------------------------
     
 defined("PITHY_PATH_CONFIG") || define("PITHY_PATH_CONFIG", dirname(__FILE__));
-defined("PITHY_CONFIG_MNS") || define("PITHY_CONFIG_MNS", PITHY_PATH_CONFIG.DIRECTORY_SEPARATOR."config.php");
+defined("PITHY_CONFIG_MNS") || define("PITHY_CONFIG_MNS", PITHY_PATH_CONFIG.DIRECTORY_SEPARATOR."main.php");
 
 /*
 define("PITHY_CONFIG_MNS", serialize(

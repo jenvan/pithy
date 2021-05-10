@@ -66,11 +66,12 @@ class Command extends PithyBase {
      *  
      */
     public function initialize() {
+        // 设置 Pithy 的异常处理方法
+        Pithy::$terminator = array($this, "exception");
 
         // 子控制器是否存在预加载方法
-        method_exists($this, "_init") && call_user_func(array($this, "_init")); 
-
-    }    
+        method_exists($this, "_init") && call_user_func(array($this, "_init"));
+    }
     
     /**       
      * 异常  
@@ -79,7 +80,6 @@ class Command extends PithyBase {
      * @return mixed
      */
     public function exception($msg){
-        $msg = IS_WIN ? mb_convert_encoding($msg, "gbk", "utf-8") : $msg;
          
          // 子类中是否存在 _exception 或 _error 方法，存在则调用
         if (method_exists($this, "_exception"))
@@ -87,7 +87,7 @@ class Command extends PithyBase {
         if (method_exists($this, "_error"))
             return $this->_error($msg); 
 
-        throw new Exception($msg);
+        return $this->halt($msg);
     } 
 
     /**         

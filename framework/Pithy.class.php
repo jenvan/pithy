@@ -874,7 +874,7 @@ class Pithy{
     } 
 
     // 异常处理
-    static public function exception($e){  
+    static public function exception($e){
 
         $e = (array) $e;   
 
@@ -1201,7 +1201,7 @@ class Pithy{
      * 
      * @param string $msg
      */
-    static public function halt($msg){ 
+    static public function halt($msg){
     
         // 如果不是字符串则转换
         if (!is_string($msg)){
@@ -1210,20 +1210,18 @@ class Pithy{
 
         // 显示要输出的内容
         if (!IS_CLI){
-
             !headers_sent() && header("Content-type: text/html; charset=utf-8");
-
             if (PITHY_DEBUG){
                 $msg = preg_replace("/".PHP_EOL."(#|@)/", PHP_EOL."<b style='color:#33F;'>$1</b>", $msg);
                 $msg = "<h1 style='color:#F33;'>".preg_replace("/".PHP_EOL."/", "</h1><pre>", $msg, 1)."</pre>";
                 $msg = strstr($msg, "<pre>") <> "" ? $msg : "<pre>".$msg."</pre>";
                 $msg = "<div title='双击关闭' ondblclick='this.style.display=\"none\"' style='position:fixed;top:10%;left:10%;width:78%;height:78%;padding:1%;background:#000;border-radius:10px;color:#999;font-size:14px;font-weight:400;line-height:24px;opacity:0.8;overflow:auto;'>".$msg."</div>";  
             }
-
-            if (!is_null(Pithy::$terminator))
-                return call_user_func(Pithy::$terminator, $msg); 
         }
-        
+
+        if (!is_null(Pithy::$terminator))
+            return call_user_func(Pithy::$terminator, $msg); 
+
         if (IS_CLI && IS_WIN)
             $msg = mb_convert_encoding($msg, "gbk", "utf-8")."\r\n\r\n";
 

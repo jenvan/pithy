@@ -51,7 +51,7 @@
  */ 
 
 defined("PITHY_PATH_CONFIG") || define("PITHY_PATH_CONFIG", dirname(__FILE__));
-defined("PITHY_CONFIG_DATABASE") || define("PITHY_CONFIG_DATABASE", PITHY_PATH_CONFIG.DIRECTORY_SEPARATOR."config.php");
+defined("PITHY_CONFIG_DATABASE") || define("PITHY_CONFIG_DATABASE", PITHY_PATH_CONFIG.DIRECTORY_SEPARATOR."main.php");
 
 class Database
 {

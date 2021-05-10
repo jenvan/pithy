@@ -46,7 +46,7 @@ define("PITHY_CONFIG_STORAGE", serialize(
 defined("PITHY_TIME") || define("PITHY_TIME", microtime(true));
 defined("PITHY_RANDOM") || define("PITHY_RANDOM", "R_".PITHY_TIME."_".mt_rand());  
 defined("PITHY_PATH_CONFIG") || define("PITHY_PATH_CONFIG", dirname(__FILE__));
-defined("PITHY_CONFIG_STORAGE") || define("PITHY_CONFIG_STORAGE", PITHY_PATH_CONFIG.DIRECTORY_SEPARATOR."config.php");
+defined("PITHY_CONFIG_STORAGE") || define("PITHY_CONFIG_STORAGE", PITHY_PATH_CONFIG.DIRECTORY_SEPARATOR."main.php");
 
 class Storage{    
 
@@ -73,7 +73,7 @@ class Storage{
             trigger_error("Parameters error!",E_USER_ERROR);  
 
         // 获取配置文件中的所有配置
-        $config = file_exists(PITHY_CONFIG_STORAGE) ? @require(PITHY_CONFIG_STORAGE) : @unserialize(PITHY_CONFIG_STORAGE);        
+        $config = file_exists(PITHY_CONFIG_STORAGE) ? @require(PITHY_CONFIG_STORAGE) : @unserialize(PITHY_CONFIG_STORAGE);
         isset($config["storage"]) && $config = $config["storage"];
         isset($config["Storage"]) && $config = $config["Storage"]; 
         if( !isset($config[$type]) || !is_array($config[$type]) && empty($config[$type]) )
