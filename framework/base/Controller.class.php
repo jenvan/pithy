@@ -114,6 +114,8 @@ class Controller extends PithyBase {
      +----------------------------------------------------------
      */
     public function exception($msg){ 
+        if (PITHY_DEBUG && isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && "xmlhttprequest" == strtolower($_SERVER["HTTP_X_REQUESTED_WITH"]))
+            $msg = preg_replace("/^([\s|\S]+)<h1>([^<]+)<\/h1>([\s|\S]+)$/m", "$2", $msg);
     
         // 子类中是否存在 _exception 或 _error 方法，存在则调用
         if (method_exists($this, "_exception"))

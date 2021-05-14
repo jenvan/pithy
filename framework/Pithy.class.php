@@ -1213,7 +1213,7 @@ class Pithy{
             !headers_sent() && header("Content-type: text/html; charset=utf-8");
             if (PITHY_DEBUG){
                 $msg = preg_replace("/".PHP_EOL."(#|@)/", PHP_EOL."<b style='color:#33F;'>$1</b>", $msg);
-                $msg = "<h1 style='color:#F33;'>".preg_replace("/".PHP_EOL."/", "</h1><pre>", $msg, 1)."</pre>";
+                $msg = "<h1>".preg_replace("/".PHP_EOL."/", "</h1><pre>", $msg, 1)."</pre>";
                 $msg = strstr($msg, "<pre>") <> "" ? $msg : "<pre>".$msg."</pre>";
                 $msg = "<div title='双击关闭' ondblclick='this.style.display=\"none\"' style='position:fixed;top:10%;left:10%;width:78%;height:78%;padding:1%;background:#000;border-radius:10px;color:#999;font-size:14px;font-weight:400;line-height:24px;opacity:0.8;overflow:auto;'>".$msg."</div>";  
             }
