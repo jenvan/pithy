@@ -1306,7 +1306,7 @@ class Pithy{
         } 
         
         $log = IS_WIN ? "nul" : "/dev/null";
-        !PITHY_DEBUG && $cmd = "{$cmd} 1>>{$log} 2>&1";
+        !IS_WIN && $cmd = "{$cmd} 1>>{$log} 2>&1";
         self::log($cmd, "execute_".basename($bin));
         
         if (!$asyn){
