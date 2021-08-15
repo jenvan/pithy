@@ -101,7 +101,7 @@ class HTTP{
                 $fields = $arg;
             elseif (is_int($arg))
                 $options[CURLOPT_TIMEOUT] = $arg;
-            elseif (preg_match("/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+$/", $arg)) 
+            elseif (preg_match("/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+$/", $arg)) 
                 $options[CURLOPT_PROXY] = $arg; 
             elseif (preg_match("/^http[s]?:\/\/.+/", $arg))
                 $options[CURLOPT_REFERER] = $arg;
