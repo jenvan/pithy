@@ -856,8 +856,8 @@ class Database
         $this->options['limit'] = 1;        
         $rows = $this->select();
         if( !empty($rows) && isset($rows[0]) ){
-            if( !empty($filed) && isset($rows[0][$filed]) )
-                return $rows[0][$filed];
+            if( !empty($filed) )
+                return isset($rows[0][$filed]) ? $rows[0][$filed] : null;
             return $rows[0];
         }
         return null; 
