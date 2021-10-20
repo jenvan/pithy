@@ -68,7 +68,7 @@ class HTTP{
         if (0 !== ($errno = curl_errno($ch)))
             $error = curl_error($ch);
         elseif (200 !== $status)
-            $error = preg_replace("/\\n.*/", "", $response);
+            $error = preg_replace("/^[\s\S]*HTTP\/[\d\.]+ ".$status." ([^\\n]+)[\s\S]+$/m", "\\1", $response);
         else
             $error = "";
                
