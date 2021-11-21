@@ -170,9 +170,9 @@ class Controller extends PithyBase {
      +----------------------------------------------------------
      */
     final public function call($route, $params=null, $enable=true){
-        $arr = $this->router->update($route);
+        $arr = $this->router->parse($route);
         !empty($arr["group"]) && Pithy::import("~.@".$arr["group"].".extend.*");
-        self::factory($arr["controller"])->run($arr["action"], $params, $enable); 
+        return self::factory($arr["controller"])->run($arr["action"], $params, $enable); 
     }
 
     /**
@@ -280,11 +280,12 @@ class Controller extends PithyBase {
         // 执行自身 action
         $actionName = "action".ucfirst($action);
         if (method_exists($this, $actionName)){
+            $result = null;
             if (!method_exists($this, "_before") || $this->_before($action)){
-                Pithy::call($this, $actionName, $params);
+                $result = Pithy::call($this, $actionName, $params);
                 method_exists($this, "_after") && $this->_after($action);
             }
-            return;
+            return $result;
         }
         
         
@@ -302,9 +303,7 @@ class Controller extends PithyBase {
                 $params = Pithy::merge($_params, $params);  
             }
 
-            $this->call($route, $params);
-            
-            return; 
+            return $this->call($route, $params);
         } 
         
 

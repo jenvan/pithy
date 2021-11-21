@@ -40,7 +40,16 @@ class Router extends PithyBase {
         $url = preg_replace("/(\/+)/", "/", $url);
 
         // 更新路由
-        $this->update($url); 
+        $arr = $this->parse($url, Pithy::merge($_GET, $_POST));
+        
+        // 赋值
+        $this->_file = $arr["file"];
+        $this->_controller = $arr["controller"]; 
+        $this->_route = $arr["route"];  
+        $this->_group = $arr["group"];
+        $this->_module = $arr["module"];
+        $this->_action = $arr["action"]; 
+        $this->_params = $arr["params"];
         
         return;
         
@@ -55,25 +64,6 @@ class Router extends PithyBase {
             "params" => $this->params,
         ));
         
-    }
-
-    // 更新路由
-    public function update($route, $params = null){
-        !is_array($params) && $params = Pithy::merge($_GET, $_POST);
-
-        // 分解
-        $arr = $this->parse($route, $params); 
-
-        // 赋值
-        $this->_file = $arr["file"];
-        $this->_controller = $arr["controller"]; 
-        $this->_route = $arr["route"];  
-        $this->_group = $arr["group"];
-        $this->_module = $arr["module"];
-        $this->_action = $arr["action"]; 
-        $this->_params = $arr["params"];
-
-        return $arr;
     }
 
     // 将url地址解析成参数
@@ -214,6 +204,6 @@ class Router extends PithyBase {
     public function getParams(){
         if (!is_array($this->_params))
             $this->_params = array();
-        return Pithy::merge(Pithy::merge($_GET, $_POST), $this->_params);
+        return $this->_params;
     }
 }

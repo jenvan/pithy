@@ -40,23 +40,24 @@ class Input extends PithyBase {
             foreach ($filters as $filter){
                 if (!isset($filter["class"], $filter["method"]) || (isset($filter["enable"]) && !$filter["enable"]))
                     continue;
-                !empty($_GET)  && call_user_func_array(array($filter["class"], $filter["method"]), array(&$_GET));
-                !empty($_POST) && call_user_func_array(array($filter["class"], $filter["method"]), array(&$_POST));
+                !empty($_GET)  && $_GET  = call_user_func(array($filter["class"], $filter["method"]), $_GET);
+                !empty($_POST) && $_POST = call_user_func(array($filter["class"], $filter["method"]), $_POST);
             }
         }
-
     }
 
     // 可以内置一些常用的过滤方法，使用的时候只需要配置即可
-    public function filterSqlInject(&$data){
+    public function filterSqlInject($data){
         foreach ($data as $k => $v){
-            $data[$k] = preg_replace("/'/", "", $v);
+            $data[$k] = is_array($v) ? $this->filterSqlInject($v) : preg_replace("/'/", "", $v);
         }
+        return $data;
     }
-    public function filterXss(&$data){
+    public function filterXss($data){
         foreach ($data as $k => $v){
-            $data[$k] = preg_replace("/script/i", "scr ipt", $v);
+            $data[$k] = is_array($v) ? $this->filterXss($v) : preg_replace("/script/i", "scr ipt", $v);
         }
+        return $data;
     }
 
 }
