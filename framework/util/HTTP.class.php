@@ -30,26 +30,40 @@ class HTTP{
         
         if (!empty($fields)) { 
             if (!empty($options[CURLOPT_POST]) || !empty($options[CURLOPT_CUSTOMREQUEST])) {
-                
-                $multipart = is_string($fields);
-                
+
+                // fields 字段：文件上传用 multipart/form-data（数组），否则用 www-form-urlencoded（字符串）
                 if (is_array($fields)) {
+
+                    $form = false;
+                    $json = false;
+                    
                     foreach($fields as $k => $v) {
-                        if ("@" == substr($v, 0, 1)) {
-                            $multipart = true;
+                        if (is_string($v) && "@" == substr($v, 0, 1)) {
+                            $form = true;
                             if (!class_exists("CURLFile"))
                                 $options[CURLOPT_SAFE_UPLOAD] = false;
                             else
                                 $fields[$k] = new CURLFile(ltrim($v, "@"));
                         }
                     }
-                    unset($k, $v);
+
+                    foreach ($options[CURLOPT_HTTPHEADER] as $v) {
+                        if (stristr($v, "multipart/form-data") !== false) {
+                            $form = true;
+                        }
+                        if (preg_match("/application\/.*json/i", $v) !== false) {
+                            $json = true;
+                        }
+                    }
+
+                    if (!$form) {
+                        $fields = $json ? json_encode($fields, JSON_UNESCAPED_UNICODE) : http_build_query($fields);
+                    }
                 }
                 
-                // 文件上传用 multipart/form-data，否则用 www-form-urlencoded                
-                $options[CURLOPT_POSTFIELDS] = $multipart ? $fields : http_build_query($fields);                 
+                $options[CURLOPT_POSTFIELDS] = $fields;
             } 
-            else{
+            else {
                 $url .= (strstr($url, "?") == "" ? "?" : "&") . (is_array($fields) ? http_build_query($fields) : $fields);
             }
         }
@@ -85,7 +99,7 @@ class HTTP{
         
         $method = strtoupper($method);
         $fields = array();
-        $options = array();   
+        $options = array();
         
         if (in_array($method, array("GET","POST")))
             $options[CURLOPT_POST] = ($method == "POST");
@@ -107,7 +121,7 @@ class HTTP{
                 $options[CURLOPT_REFERER] = $arg;
             elseif (preg_match("/^Mozilla/", $arg))
                 $options[CURLOPT_USERAGENT] = $arg;
-            elseif (preg_match("/^[a-z0-9\-]+:/i", $arg)) {
+            elseif (preg_match("/^[a-z0-9\-\/]+:/i", $arg)) {
                 !isset($options[CURLOPT_HTTPHEADER]) && $options[CURLOPT_HTTPHEADER] = array();
                 $options[CURLOPT_HTTPHEADER][] = $arg;
             }

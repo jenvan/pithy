@@ -340,7 +340,7 @@ class View extends PithyBase {
         $callback2 = Pithy::config("View.Show.Script");
         if (Pithy::config("View.Show.Direct") || (isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && "xmlhttprequest" == strtolower($_SERVER["HTTP_X_REQUESTED_WITH"])) || !empty($_REQUEST[$callback1]) || !empty($_REQUEST[$callback2])){
             krsort($params);
-            $content = json_encode($params);
+            $content = json_encode($params, JSON_UNESCAPED_UNICODE);
             if (!empty($_REQUEST[$callback1])){
                 $content = $_REQUEST[$callback1]."(".$content.");";
             }
