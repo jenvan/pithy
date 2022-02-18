@@ -345,7 +345,7 @@ class View extends PithyBase {
                 $content = $_REQUEST[$callback1]."(".$content.");";
             }
             if (!empty($_REQUEST[$callback2])){
-                $content = "<script>window.name='".base64_encode($_REQUEST[$callback2]."(".$content.")")."';</script>";
+                $content = "<script>window.name='".base64_encode($_REQUEST[$callback2]."(".json_encode($params).")")."';</script>";
             }
             echo $content;
             exit;
