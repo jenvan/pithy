@@ -51,7 +51,7 @@ class HTTP{
                         if (stristr($v, "multipart/form-data") !== false) {
                             $form = true;
                         }
-                        if (preg_match("/application\/.*json/i", $v) !== false) {
+                        if (preg_match("/application\/.*json/i", $v)) {
                             $json = true;
                         }
                     }
