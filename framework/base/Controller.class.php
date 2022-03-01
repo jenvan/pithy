@@ -193,11 +193,11 @@ class Controller extends PithyBase {
         // 参数判断
         1 == func_num_args() && is_bool($action) && $enable = $action;
         2 == func_num_args() && is_bool($params) && $enable = $params;
-        (empty($action) || !is_string($action))  && $action = $this->action;
-        (is_null($params) || !is_array($params)) && $params = array();
+        $action = (empty($action) || !is_string($action)) ? $this->action : strtolower($action);
+        $params = is_null($params) ? $this->params : (is_array($params) ? $params : array());
         
-        $this->_action = $action = strtolower($action);
-        $this->_params = $params = Pithy::merge($this->params, $params);
+        $this->_action = $action;
+        $this->_params = $params;
 
         //$this->debug("  RUN : {$action}\n   CP : ".json_encode($params)."\n   RP : ".json_encode($this->router->params));
 
