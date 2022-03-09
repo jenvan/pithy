@@ -109,7 +109,7 @@ class HTTP{
         $num = func_num_args();
         $args = func_get_args();
         foreach($args as $i => $arg){
-            if ($i < 2)
+            if ($i < 2 || empty($arg))
                 continue;
             if (is_array($arg))
                 $fields = $arg;
