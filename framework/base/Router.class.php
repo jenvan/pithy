@@ -145,6 +145,10 @@ class Router extends PithyBase {
 
         }
 
+        $group = strtolower($group);
+        $module = strtolower($module);
+        $action = strtolower($action);
+
         // 返回
         return array(
             "file" => $file,
