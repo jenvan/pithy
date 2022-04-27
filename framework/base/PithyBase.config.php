@@ -146,13 +146,16 @@ return array(
 
         // 简单页面显示配置
         "Show" => array(
-            "Return" => 0,         		// 信息显示默认返回状态
-            "Success" => "OK",          // 信息显示默认返回成功消息
-            "Failure" => "ERR",         // 信息显示默认返回失败消息
             "Template" => "//message",  // 信息显示模板的路径
-            "Direct" => false,          // 直接显示JSON
-            "Ajax" => "callback",       // Ajax方式返回结果
-            "Script" => "script",       // Script方式返回结果
+            "Direct" => false,          // 返回方式：直接显示JSON
+            "Script" => "script",       // 返回方式：Script方式返回结果 
+            "Ajax" => "callback",       // 返回方式：Ajax方式返回结果
+            "StatusField" => "rtn",      // Ajax 方式返回状态字段
+            "StatusValue" => 0,         // Ajax 方式返回状态：默认
+            "MessageField" => "msg",    // Ajax 方式返回信息字段
+            "MessageSuccess" => "OK",   // Ajax 方式返回信息：默认成功消息
+            "MessageFailure" => "ERR",  // Ajax 方式返回信息：默认失败消息
+            "ReturnData" => true,       // Ajax 方式返回数据：true 表示 data 独立，false 表示合并到返回字段
         ),
 
         // 模板相关配置

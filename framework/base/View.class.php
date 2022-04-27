@@ -330,15 +330,27 @@ class View extends PithyBase {
            if (is_numeric($k))
                unset($params[$k]);
         }
-        !isset($params["rtn"])  && $params["rtn"] = Pithy::config("View.Show.Return");
-        !isset($params["msg"])  && $params["msg"] = $params["rtn"] ? Pithy::config("View.Show.Failure") : Pithy::config("View.Show.Success");
-        !isset($params["data"]) && $params["data"] = array();        
+        !isset($params["rtn"])  && $params["rtn"] = Pithy::config("View.Show.StatusValue");
+        !isset($params["msg"])  && $params["msg"] = $params["rtn"] ? Pithy::config("View.Show.MessageFailure") : Pithy::config("View.Show.MessageSuccess");
+        !isset($params["data"]) && $params["data"] = array();
         //Pithy::debug($params);
 
         // AJAX输出 或 SCRIPT输出（跨域提交、结果通过window.name返回）
         $callback1 = Pithy::config("View.Show.Ajax");
         $callback2 = Pithy::config("View.Show.Script");
         if (Pithy::config("View.Show.Direct") || (isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && "xmlhttprequest" == strtolower($_SERVER["HTTP_X_REQUESTED_WITH"])) || !empty($_REQUEST[$callback1]) || !empty($_REQUEST[$callback2])){
+            if (Pithy::config("View.Show.StatusField") != "rtn") {
+                !empty(Pithy::config("View.Show.StatusField")) && $params[Pithy::config("View.Show.StatusField")] = $params["rtn"];
+                unset($params["rtn"]);
+            }
+            if (Pithy::config("View.Show.MessageField") != "msg") {
+                !empty(Pithy::config("View.Show.MessageField")) && $params[Pithy::config("View.Show.MessageField")] = $params["msg"];
+                unset($params["msg"]);
+            }
+            if (empty(Pithy::config("View.Show.ReturnData"))) {
+                $params = Pithy::merge($params, $params["data"]);
+                unset($params["data"]);
+            }
             krsort($params);
             $content = json_encode($params, JSON_UNESCAPED_UNICODE);
             if (!empty($_REQUEST[$callback1])){

@@ -987,9 +987,9 @@ class Pithy{
      * @param mixed $name
      * @param mixed $value
      */
-    static public function config($name=null, $value=PITHY_RANDOM){ 
+    static public function config($name = null, $value = PITHY_RANDOM){ 
     
-        static $data = array();             
+        static $data = array();
 
         // 无参数时获取所有
         if (empty($name)) 
@@ -1000,14 +1000,14 @@ class Pithy{
             return $data = $value === true ? $name : self::merge($data, $name);
     
         // 执行设置获取或赋值，支持 . 操作 
-        if (is_string($name)){                
+        if (is_string($name)){
             
             $arr = explode('.', $name);
             
             if (count($arr) == 1){
                 if (PITHY_RANDOM === $value)
                     return isset($data[$name]) ? $data[$name] : null;
-                return $data[$name] = $value;    
+                return $data[$name] = $value;
             }
              
             $key = array_pop($arr);
@@ -1016,12 +1016,11 @@ class Pithy{
                 $result = self::config($str);
                 return !empty($result) && isset($result[$key]) ? $result[$key] : null;
             }
-            return self::config($str, array($key => $value));        
-        
+            return self::config($str, self::merge(self::config($str), array($key => $value)));
         }
-           
-        return null;           
-    }  
+
+        return null;
+    }
 
     /**
      * 缓存处理(服务端简单数据暂存）
