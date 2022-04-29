@@ -115,16 +115,18 @@ class HTTP{
                 $fields = $arg;
             elseif (is_int($arg))
                 $options[CURLOPT_TIMEOUT] = $arg;
+            elseif (preg_match("/^Mozilla/", $arg))
+                $options[CURLOPT_USERAGENT] = $arg;
             elseif (preg_match("/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+$/", $arg)) 
                 $options[CURLOPT_PROXY] = $arg; 
             elseif (preg_match("/^http[s]?:\/\/.+/", $arg))
                 $options[CURLOPT_REFERER] = $arg;
-            elseif (preg_match("/^Mozilla/", $arg))
-                $options[CURLOPT_USERAGENT] = $arg;
             elseif (preg_match("/^[a-z0-9\-\/]+:/i", $arg)) {
                 !isset($options[CURLOPT_HTTPHEADER]) && $options[CURLOPT_HTTPHEADER] = array();
                 $options[CURLOPT_HTTPHEADER][] = $arg;
             }
+            elseif (preg_match("/^[\w]+@.+/", $arg))
+                $options[CURLOPT_USERPWD] = preg_replace("/@/", ":", $arg, 1);
             else
                 $fields = $arg;
         } 
