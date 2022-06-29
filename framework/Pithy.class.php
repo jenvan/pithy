@@ -344,7 +344,7 @@ class Pithy{
      * @param mixed $name 导入路径
      * @return bool 是否导入成功
      */
-    static public function import($name){
+    static public function import($name, $override = false){
         
         if (empty($name)) return false;
 
@@ -386,7 +386,7 @@ class Pithy{
           
         // 判断文件是否存在，并暂存数据
         $exists = $data[$name] = self::exists($filepath);
-        if (isset(self::$_alias[$class]) && self::$_alias[$class] != $filepath)
+        if (!$override && isset(self::$_alias[$class]) && self::$_alias[$class] != $filepath)
             return trigger_error("Class [$class] is already defined! ", E_USER_ERROR);
         
         $exists && self::$_alias[$class] = $filepath;
