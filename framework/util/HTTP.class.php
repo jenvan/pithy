@@ -47,12 +47,14 @@ class HTTP{
                         }
                     }
 
-                    foreach ($options[CURLOPT_HTTPHEADER] as $v) {
-                        if (stristr($v, "multipart/form-data") !== false) {
-                            $form = true;
-                        }
-                        if (preg_match("/application\/.*json/i", $v)) {
-                            $json = true;
+                    if (!empty($options[CURLOPT_HTTPHEADER])){
+                        foreach ($options[CURLOPT_HTTPHEADER] as $v) {
+                            if (stristr($v, "multipart/form-data") !== false) {
+                                $form = true;
+                            }
+                            if (preg_match("/application\/.*json/i", $v)) {
+                                $json = true;
+                            }
                         }
                     }
 
