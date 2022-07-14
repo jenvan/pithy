@@ -140,6 +140,20 @@ class String
         return $all ? htmlentities($str,ENT_QUOTES) : htmlspecialchars($str,ENT_QUOTES);
     }
 
+    static public function strip($str, $all = true){
+        $pattern = array("/<script[^>]+\/>/sim", "/<script[^>]*>.*?<\/script>/sim", '/(<[^>]+[\s]+)(on[a-z]+=[^>|\/|\s]+)/sim', '/(java|js|vb)(script)/im');
+        $str = preg_replace($pattern, array("", "", "$1","$1 $2"), $str);
+        if ($all) {
+            $arr = array("meta", "base", "link", "iframe", "frame", "frameset");
+            foreach ($arr as $tag) {
+                $str = preg_replace(array("/<{$tag}[^>]+\/>/sim", "/<{$tag}[^>]*>.*?<\/{$tag}>/sim"), "", $str);
+            }
+        }
+        return $str;
+    }
+
+
+
     /**
      * 切割中文字符串(等长和非等长)
      * 
