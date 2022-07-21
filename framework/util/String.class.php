@@ -125,9 +125,9 @@ class String
         }
     } 
 
-    static public function name($str) {
+    static public function named($str) {
         if (strstr($str,"_") != ""){
-            return ucfirst(preg_replace("/_([a-zA-Z])/e", "strtoupper('\\1')", $str));
+            return ucfirst(preg_replace_callback("/_([a-zA-Z])/m", create_function('$m', 'return strtoupper($m[1]);') , $str));
         }
         if (preg_match("/[A-Z]/", $str)){
             $str = preg_replace("/[A-Z]/", "_\\0", $str);
