@@ -802,7 +802,7 @@ class Pithy{
             // 调用 php 自带的日志记录函数
             error_log($msg.PHP_EOL, $type, $destination, $extra);
             
-            !IS_CLI && $force && strstr($msg, "::debug(") == false && self::debug($msg);
+            $force && strstr($msg, "::debug(") == false && self::debug($msg);
         }
 
         // 执行外部日志处理程序 (如果定义了外部的日志处理程序并且没有强制使用内部的，则使用外部日志处理程序来处理日志)

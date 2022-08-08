@@ -67,7 +67,7 @@ class Command extends PithyBase {
      */
     public function initialize() {
         // 设置 Pithy 的异常处理方法
-        Pithy::$terminator = array($this, "exception");
+        is_null(Pithy::$terminator) && Pithy::$terminator = array($this, "exception");
 
         // 子控制器是否存在预加载方法
         method_exists($this, "_init") && call_user_func(array($this, "_init"));
