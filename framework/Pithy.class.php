@@ -510,10 +510,8 @@ class Pithy{
             if (is_array($params) && isset($params[$name])){
                 if ($param->isArray())
                     $args[$name] = is_array($params[$name]) ? $params[$name] : array($params[$name]);
-                elseif (!is_array($params[$name]))
-                    $args[$name] = $params[$name];
                 else
-                    trigger_error(get_class($object)."::{$methodName} : Getted paramters [{$name}] is error!", E_USER_ERROR);
+                    $args[$name] = $params[$name];
             }
             elseif ($param->isDefaultValueAvailable())
                 $args[$name] = $param->getDefaultValue();
