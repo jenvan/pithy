@@ -152,7 +152,20 @@ class String
         return $str;
     }
 
-
+    static public function arr2xml($arr) {
+        $str = "";
+        foreach ($arr as $k => $v){
+            $str .= "<{$k}>";
+            if (is_array($v) || is_object($v)){
+                $str .= self::arr2xml($v);
+            }
+            else{
+                $str .= "<![CDATA[".strval($v)."]]>";
+            }
+            $str .= "</{$k}>";
+        }
+        return $str;
+    }
 
     /**
      * 切割中文字符串(等长和非等长)
