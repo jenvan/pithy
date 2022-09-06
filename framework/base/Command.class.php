@@ -193,10 +193,10 @@ class Command extends PithyBase {
         $actionName = "action".ucfirst($action);
         if (method_exists($this, $actionName)){
             if (!method_exists($this, "_before") || $this->_before($action))
-                Pithy::call($this, $actionName, $params, $vars); 
+                $rtn = Pithy::call($this, $actionName, $params, $vars); 
             method_exists($this, "_after") && $this->_after($action);
             log2file();
-            return;
+            return $rtn;
         }
 
         // 动作不存在
