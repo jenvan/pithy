@@ -30,12 +30,13 @@ return array(
 
     // Router设置
     'Router'=>array(
-        'Groups' => array(),
         'Default' => array(
             'group' => '',
             'module' => 'site',
             'action' => 'index', 
         ),
+        'Groups' => array(),
+        'Alias' => array(),
         'Map' => array(
             'uid' => '\/_([^\/]+)_\/'
         ),
@@ -150,7 +151,7 @@ return array(
             "Direct" => false,          // 返回方式：直接显示JSON
             "Script" => "script",       // 返回方式：Script方式返回结果 
             "Ajax" => "callback",       // 返回方式：Ajax方式返回结果
-            "StatusField" => "rtn",      // Ajax 方式返回状态字段
+            "StatusField" => "rtn",     // Ajax 方式返回状态字段
             "StatusValue" => 0,         // Ajax 方式返回状态：默认
             "MessageField" => "msg",    // Ajax 方式返回信息字段
             "MessageSuccess" => "OK",   // Ajax 方式返回信息：默认成功消息
@@ -171,7 +172,7 @@ return array(
             "Suffix"        => "}-->",  
             "Block"         => "block",
             "BlockBegin"    => "block_begin",
-            "BlockEnd"      => "block_end",            
+            "BlockEnd"      => "block_end",
             "Content"       => "content",
         ),
         

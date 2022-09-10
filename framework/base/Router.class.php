@@ -134,10 +134,15 @@ class Router extends PithyBase {
                     $action = $arr[0];
         
                 unset($arr[0]);
-            } 
-            $arr = array_values($arr);
+            }
+            $alias = Pithy::config("Router.Alias");
+            if (is_array($alias) && !empty($module)) {
+                isset($alias[$module]) && $module = $alias[$module];
+                isset($alias[$module."/".$action]) && list($module, $action) = explode("/", $alias[$module."/".$action]);
+            }
 
             // 获取 params
+            $arr = array_values($arr);
             $len = count($arr);
             for ($i=0; $i<$len; $i=$i+2){
                 $params[$arr[$i]] = ($i+1<$len) ? $arr[$i+1] : "";
@@ -154,7 +159,7 @@ class Router extends PithyBase {
             "file" => $file,
             "controller" => "~.controller.".ucfirst($module)."Controller".( empty($group) ? "" : "@{$group}" ), 
             "route" => ( empty($group) ? "" : "/{$group}" ) . "/{$module}/{$action}",
-            "group" => $group,    
+            "group" => $group,
             "module" => $module,
             "action" => $action,
             "params" => $params,
