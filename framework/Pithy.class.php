@@ -229,31 +229,15 @@ class Pithy{
         /* mvc 模式 按下列流程顺序执行 */
 
         /***********************************/ 
-        // 钩子 
-        /***********************************/ 
-        Pithy::benchmark("hook");
-        
-        // 实例化钩子类
-        $hook = Hook::singleton();     
-
-        // 初始钩子：可以挂载 日志处理、实例化外部扩展类 等优先级高的操作
-        $hook->call("init");
-
-
-        /***********************************/ 
         // 输入过滤 
         /***********************************/   
         Pithy::benchmark("input");
 
-        // 输入构造钩子：可以替换系统自带的输入类
-        if ($hook->call("input_init") == true){
-            Pithy::$inputer = Input::singleton();
-        }
+        // 输入构造
+        empty(Pithy::$inputer) && Pithy::$inputer = Input::singleton();
 
-        // 输入过滤器钩子：可以挂载 参数过滤 、编码转换、安全检测 操作
-        if ($hook->call("input_filter") == true){
-            Pithy::$inputer->filter();     
-        }
+        // 输入过滤器：可以进行 参数过滤 、编码转换、安全检测 操作
+        Pithy::$inputer->filter();
 
 
         /***********************************/ 
@@ -275,29 +259,21 @@ class Pithy{
         /***********************************/ 
         Pithy::benchmark("cache");
 
-        // 缓存构造钩子：可以替换系统自带的缓存类
-        if ($hook->call("cache_init") == true){
-            Pithy::$outputer = Output::singleton();
-        }
+        // 输出构造
+        empty(Pithy::$outputer) && Pithy::$outputer = Output::singleton();
 
-        // 缓存显示钩子：可以替换系统自带的缓存输出
-        if ($hook->call("cache_display") == true){
-            $rtn = Pithy::$outputer->cacheDisplay();    
-        }                                      
+        // 缓存显示
+        $rtn = Pithy::$outputer->cacheDisplay();
 
         // 本次请求如果是输出缓存内容，则退出
-        if (isset($rtn) && $rtn)
-            return;                                
+        if ($rtn) return;
 
 
         /***********************************/ 
         // 控制器 
         /***********************************/ 
-        Pithy::benchmark("controller"); 
+        Pithy::benchmark("controller");
 
-        // 控制器钩子：此处可以挂载 权限验证 操作
-        $hook->call("controller");
-                           
         // 实例化控制器并执行动作 
         Controller::factory($router->controller)->run();
 
@@ -307,27 +283,16 @@ class Pithy{
         /***********************************/ 
         Pithy::benchmark("output"); 
 
-        // 输出构造钩子：可以替换系统自带的输出类
-        if ($hook->call("output_init")){
-            Pithy::$outputer = Output::singleton();
-        }
+        // 输出过滤
+        Pithy::$outputer->filter();
 
-        // 输出过滤器钩子： 输出控制、格式化等
-        if ($hook->call("output_filter")){
-            Pithy::$outputer->filter();    
-        }
+        // 缓存文件
+        Pithy::$outputer->cacheBuild();
 
-        // 缓存文件构造钩子：可以替换系统自带的缓存构造
-        if ($hook->call("output_cache")){
-            Pithy::$outputer->cacheBuild();    
-        }
+        // 输出显示
+        Pithy::$outputer->display();
 
-        // 输出显示替换钩子：此处可以替换系统自带的输出类显示
-        if ($hook->call("output_display")){
-            Pithy::$outputer->display();   
-        } 
-                                       
-    }                                                       
+    }
 
 
 
@@ -371,7 +336,7 @@ class Pithy{
             }  
             
             // 保存到缓存中
-            $data[$name] = $status;             
+            $data[$name] = $status;
             
             return $status;
         }

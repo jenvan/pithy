@@ -38,7 +38,7 @@ class PithyBase {
         */ 
 
         // 初始化
-        $args = func_get_args();        
+        $args = func_get_args();
         if (method_exists($this, "initialize"))
             return call_user_func_array(array($this, "initialize"), $args);
     }  
@@ -80,7 +80,7 @@ class PithyBase {
             throw new Exception("Property '".get_class($this)."::".$name."' is not defined.");
     }
 
-    public function __call($method,$args){       
+    public function __call($method,$args){
         throw new Exception("Method '".get_class($this)."::".$method."()' is not defined!");
     }
     

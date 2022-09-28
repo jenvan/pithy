@@ -12,22 +12,6 @@ return array(
         ),
     ),
 
-     // HOOK 设置
-    'Hook'=>array(
-
-        // 是否允许使用钩子
-        "Enable" => false,
-
-        // init 钩子
-        "Init" => array(
-            "enable" => true,
-            "list" => array(
-            
-            ),
-        ),
-
-    ),
-
     // Router设置
     'Router'=>array(
         'Default' => array(
@@ -89,7 +73,7 @@ return array(
         ),    
         
         // Replace    
-        "Replace" => array(            
+        "Replace" => array(
             "__POWERED__" => "<a class='pithy_powered' href='http://pithy.cn' target='_blank'>Powered By Pithy</a>",    
             "__VERSION__" => PITHY_VERSION,    
         ),
@@ -107,12 +91,12 @@ return array(
         ),
         
         // 开启gzip压缩传输
-        "Gzip" => true,        
+        "Gzip" => true,
 
     ),
 
     // Controller 设置
-    'Controller'=>array( 
+    'Controller'=>array(
         
         // 动态绑定
         "Bind" => array(
@@ -180,12 +164,10 @@ return array(
 
 
     // Model设置
-    'Model'=>array(
-
+    "Model" => array(
+        "Prefix" => "app_",
+        "Suffix" => "",
+        "Cache" => true,
     ),
-
-
-
-
 
 );  
