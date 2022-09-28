@@ -313,12 +313,12 @@ class Pithy{
         
         if (empty($name)) return false;
 
-        static $data = array();        
+        static $data = array();
         
-        // 首先判断是否已经导入过，导入过则返回之前的判断结果       
+        // 首先判断是否已经导入过，导入过则返回之前的判断结果
         if (!PITHY_DEBUG && is_array($data) && isset($data[$name])){
             return $data[$name];
-        }                       
+        }
         
         // 批量导入
         if (substr($name, -2) == ".*"){
@@ -360,24 +360,6 @@ class Pithy{
     }
     
     /**
-    *  载入预加载的对象
-    *  
-    * @param string $name 对象名
-    * @param boolean $force 是否强制显示出错信息
-    * @return 返回载入成功的类或者显示出错信息
-    */
-    static public function load($name, $force = true){
-        if (!isset(self::$_object[$name])){
-            $force == true && trigger_error("Object [$name] not preload! ", E_USER_ERROR);
-            return null;
-        }
-        if (!isset(self::$_object[$name]["instance"])){
-            self::$_object[$name]["instance"] = self::instance(self::$_object[$name]["class"], self::$_object[$name]["params"], true);       
-        }   
-        return self::$_object[$name]["instance"];         
-    }         
-    
-    /**
      * 自动载入类文件
      * 
      * @param mixed $class 类名
@@ -390,8 +372,8 @@ class Pithy{
         if (PITHY_MODE == "extend")
             return;
         
-        trigger_error("Class ($class) is not defined!", E_USER_ERROR);          
-    }      
+        trigger_error("Class ($class) is not defined!", E_USER_ERROR);
+    }
 
     /**
      * 获取指定类的实体(即实例化的对象）
@@ -431,8 +413,26 @@ class Pithy{
         $singleton && $data[$class] = $object;
 
         return $object;
-    } 
-    
+    }
+
+    /**
+     *  载入预加载的对象
+     *  
+     * @param string $name 对象名
+     * @param boolean $force 是否强制显示出错信息
+     * @return object 返回载入成功的类或者显示出错信息
+     */
+    static public function load($name, $force = true){
+        if (!isset(self::$_object[$name])){
+            $force == true && trigger_error("Object [$name] not preload! ", E_USER_ERROR);
+            return null;
+        }
+        if (!isset(self::$_object[$name]["instance"])){
+            self::$_object[$name]["instance"] = self::instance(self::$_object[$name]["class"], self::$_object[$name]["params"], true);
+        }   
+        return self::$_object[$name]["instance"];
+    }
+
     /**
      * 远程调用类或对象的方法
      * 
@@ -487,7 +487,7 @@ class Pithy{
         return $method->invokeArgs($object, $args);
     }
 
-              
+
     /*********************************************************/
     /************************ 调试工具 ***********************/  
     /*********************************************************/     
@@ -1277,6 +1277,6 @@ class Pithy{
         }
         $cmd = IS_WIN ? 'start cmd /c "'.$cmd.'" ' : "nohup ".$cmd." &";
         return !pclose(popen($cmd, "r"));
-    }    
+    }
 
 }
