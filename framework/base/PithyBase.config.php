@@ -167,7 +167,8 @@ return array(
     "Model" => array(
         "Prefix" => "app_",
         "Suffix" => "",
-        "Cache" => true,
+        "Cache" => true, // 缓存字段
+        "Check" => true, // 写入时检查字段类型
     ),
 
 );  

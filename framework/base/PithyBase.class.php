@@ -94,11 +94,11 @@ class PithyBase {
         $bt = debug_backtrace();
         $lines = file($bt[0]['file']);
         $line = $lines[$bt[0]['line']-1];
-        preg_match('/([a-zA-Z0-9\_]+)::'.$bt[0]['function'].'/', $line, $matches); 
+        preg_match('/([a-zA-Z0-9\_]+)::'.$bt[0]['function'].'/', $line, $matches);
         $class = $matches[1]; 
         if (!empty($class)){
-            $args = func_get_args();                
-            return Pithy::instance($class, $args, true); 
+            $args = func_get_args();
+            return Pithy::instance($class, $args, true);
         }
         throw new Exception("Create singleton 'new {$class}()' error!");
     }

@@ -1279,4 +1279,46 @@ class Pithy{
         return !pclose(popen($cmd, "r"));
     }
 
+    /**
+     * 事件监听
+     * 
+     * @param string $event   事件
+     * @param array $callback 回调函数
+     */
+    static public function listen($event, $callback = null){
+        static $data = array();
+        
+        if (!empty($callback)) {
+            !isset($data[$event]) && $data[$event] = array();
+            $data[$event][] = $callback;
+            return;
+        }
+        
+        // 无回调函数时则获取指定事件的所有回调函数
+        $arr = array();
+        foreach ($data as $e => $v) {
+            if (stripos($event, $e) !== false) {
+                $arr[] = $v;
+            }
+        }
+        return $arr;
+    }
+
+    /**
+     * 事件触发
+     * 
+     * @param string $event 事件
+     * @param array $params 参数
+     */
+    static public function trigger($event, $params = array()) {
+        $all = self::listen($event);
+        foreach ($all as $arr){
+            foreach ($arr as $func) {
+                $rtn = call_user_func_array($func, $params);
+                if (!$rtn) return false;
+            }
+        }
+        return true;
+    }
+
 }
