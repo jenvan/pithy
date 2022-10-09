@@ -151,16 +151,16 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      */
     public function __get($name) {
+        if (in_array($name, array("tableName", "tableField", "tablePK"))) {
+            $getter = "fetch".ucfirst($name);
+            return $this->$getter();
+        }
         $name = $this->convert($name, false);
         if (parent::__isset($name)) {
             return parent::__get($name);
         }
         if (self::__isset($name)) {
             return $this->data[$name];
-        }
-        if (in_array($name, array("tableName", "tableField", "tablePK"))) {
-            $getter = "fetch".ucfirst($name);
-            return $this->$getter();
         }
         if (empty($this->data)) {
             throw new Exception("模型属性数据为空");
@@ -210,12 +210,12 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      * 获取数据表名
      +----------------------------------------------------------
-     * @access public
+     * @access private
      +----------------------------------------------------------
      * @return string
      +----------------------------------------------------------
      */
-    public function fetchTableName() {
+    private function fetchTableName() {
         $tableName = !empty($this->tableName) ? $this->tableName : $this->convert($this->name, false);
         !empty($this->tablePrefix) && $tableName  = $this->tablePrefix . $tableName;
         !empty($this->tableSuffix) && $tableName .= $this->tableSuffix;
@@ -227,12 +227,12 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      * 获取数据表字段
      +----------------------------------------------------------
-     * @access public
+     * @access private
      +----------------------------------------------------------
      * @return array
      +----------------------------------------------------------
      */
-    public function fetchTableField() {
+    private function fetchTableField() {
         if (!empty($this->field)) return $this->field;
         
         $name = $this->name.".Field";
@@ -253,12 +253,12 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      * 获取数据表主键
      +----------------------------------------------------------
-     * @access public
+     * @access private
      +----------------------------------------------------------
      * @return array
      +----------------------------------------------------------
      */
-    public function fetchTablePK() {
+    private function fetchTablePK() {
         if (!empty($this->pk)) return $this->pk;
         $this->fetchTableField();
         return $this->pk;
