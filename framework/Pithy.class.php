@@ -383,20 +383,22 @@ class Pithy{
      * @param mixed $singleton 是否单体
      * @return object 实例化的对象
      */
-    static public function instance($class, $args=array(), $singleton=true){
+    static public function instance($class, $args = array(), $singleton = true){
         
         static $data = array();
 
         $singleton = (!is_array($args) && is_null($args)) ? (boolean) $args : $singleton;
-
-        if ($singleton && isset($data[$class]))
-            return $data[$class];
+        
+        is_array($args) && ksort($args);
+        $key = $class."_".md5(json_encode($args));
+        if ($singleton && isset($data[$key]))
+            return $data[$key];
 
         if (!class_exists($class))
             return trigger_error("Class ($class) is not defined!", E_USER_ERROR);
 
         if (!is_array($args) || empty($args)){
-            $object = new $class();   
+            $object = new $class();
         }
         else{
             $keys = array_keys($args);
@@ -410,7 +412,7 @@ class Pithy{
             $object = call_user_func_array(array($_class, "newInstance"),$args);
             */
         }
-        $singleton && $data[$class] = $object;
+        $singleton && $data[$key] = $object;
 
         return $object;
     }
@@ -1006,7 +1008,7 @@ class Pithy{
 
         // 设置缓存
         if (!is_null($value)){
-            @mkdir($folder, 0755, true);
+            !is_dir($folder) && @mkdir($folder, 0755, true);
             return @file_put_contents($filename, "<?php".PHP_EOL."return ".var_export($value, true).";".PHP_EOL."?>");
         }
         

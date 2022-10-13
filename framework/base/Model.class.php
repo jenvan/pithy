@@ -59,7 +59,7 @@ class Model extends PithyBase {
     // 模型数据（经过处理）
     private $data = array();
 
-    // 单一数据集
+    // 本模型是否为包含数据的单一数据集
     private $single = false;
     
 
@@ -255,7 +255,7 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      * @access private
      +----------------------------------------------------------
-     * @return array
+     * @return string
      +----------------------------------------------------------
      */
     private function fetchTablePK() {
@@ -318,8 +318,13 @@ class Model extends PithyBase {
      * @return object 对象本身
      +----------------------------------------------------------
      */
-    public function where($condition, $data = array()) {
-        if (empty($condition)) return;
+    public function where($condition = "", $data = array()) {        
+        $this->single = false;
+
+        if (empty($condition)) {
+            $this->query["where"] = array();
+            return ;
+        }
         
         empty($this->query["where"]) && $this->query["where"] = array();
 
@@ -334,7 +339,6 @@ class Model extends PithyBase {
         }
 
         //$this->debug($this->query["where"]);
-
         return $this;
     }
 
@@ -357,7 +361,15 @@ class Model extends PithyBase {
                 $this->query["field"] = $arg;
                 continue;
             }
-            if (stripos($arg, "asc") !== false || stripos($arg, "desc") !== false){
+            if (preg_match("/^group[\s]+by[\s]+/i", $arg)){
+                $this->query["group"] = preg_replace("/^group[\s]+by[\s]+/i", "", $arg);
+                continue;
+            }
+            if (preg_match("/^having[\s]+/i", $arg)){
+                $this->query["having"] = preg_replace("/^having[\s]+/i", "", $arg);
+                continue;
+            }
+            if (preg_match("/.+[\s]+(de|a)sc$/i", $arg) || $arg == "rand()"){
                 $this->query["order"] = $arg;
                 continue;
             }
@@ -366,6 +378,8 @@ class Model extends PithyBase {
                 continue;
             }
         }
+
+        //$this->debug($this->query);
         return $this;
     }
 
@@ -404,15 +418,15 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      * @access public
      +----------------------------------------------------------
-     * @param string $field 要查询的字段
+     * @param string $field 要查询的字段（单个字段，查询结果为键值为主键、内容为字段的数组）
      * @param boolean $force 未查询到数据是否抛出异常
      +----------------------------------------------------------
      * @return mixed
      +----------------------------------------------------------
      */
     public function select($field = "", $force = false) {
+        is_bool($field) && $force = $field;
         $this->query["table"] = $this->fetchTableName();
-        $this->query["field"] = $field;
 
         $rows = null;
         $rtn = Pithy::trigger("model.read.before", array($this, &$this->query));
@@ -424,6 +438,8 @@ class Model extends PithyBase {
         }
         Pithy::trigger("model.read.after", array($this, &$rows));
         
+        is_string($field) && !empty($field) && $rows = array_column($rows, $field, $this->fetchTablePK());
+        
         return $rows;
     }
 
@@ -433,16 +449,17 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      * @access public
      +----------------------------------------------------------
-     * @param string $field 字段
+     * @param string $field 字段名称（单个字段）
      * @param boolean $force 未查询到数据是否抛出异常
      +----------------------------------------------------------
      * @return mixed
      +----------------------------------------------------------
      */
     public function find($field = "", $force = false) {
+        is_bool($field) && $force = $field;
         $this->query["limit"] = 1;
 
-        $rows = $this->select("*", $force);
+        $rows = $this->select($force);
 
         $data = $this->load(empty($rows) ? null : $rows[0])->data();
 
@@ -479,7 +496,7 @@ class Model extends PithyBase {
         $pk = $this->fetchTablePK();
 
         // 判断操作
-        $job = $this->single ? "update" : "insert";
+        $job = ($this->single || !empty($this->query["where"])) ? "update" : "insert";
 
         // 数据过滤
         if (!empty($allow)) {
@@ -493,7 +510,7 @@ class Model extends PithyBase {
             return false;
         
         // 保存数据
-        $this->single && $this->where($this->data[$pk]);
+        $this->single && $this->where(array($pk, "=", $this->data[$pk]));
         $rtn = $this->db->$job($data, $this->query, $mode);
         $this->query = array();
         !$this->single && $data[$pk] = $rtn;
@@ -552,7 +569,20 @@ class Model extends PithyBase {
         return $rtn;
     }
 
-
+    /**
+     +----------------------------------------------------------
+     * call db method
+     +----------------------------------------------------------
+     * @access public
+     +----------------------------------------------------------
+     * @param string $method
+     +----------------------------------------------------------
+     * @return mixed
+     +----------------------------------------------------------
+     */
+    public function call($method = "", $params = array()) {
+        return call_user_func_array(array($this->db, $method), $params);
+    }
 
     /**
      +----------------------------------------------------------
@@ -614,7 +644,7 @@ class Model extends PithyBase {
                     $data[$key] = trim(addslashes($val));
                 }
                 elseif (false !== strpos($type, "int")) {
-                    $data[$key] = intval($val);
+                    $data[$key] = preg_replace("/[^\d]+/", "", $val);
                 }
                 elseif (false !== strpos($type, "float") || false !== strpos($type, "double") || false !== strpos($type, "real") || false !== strpos($type, "decimal") || false !== strpos($type, "numberic")){
                     $data[$key] = floatval($val);
