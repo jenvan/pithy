@@ -108,8 +108,9 @@ class Model extends PithyBase {
         // 设置表前后缀
         is_null($this->tablePrefix) && $this->tablePrefix = Pithy::config("Model.Prefix");
         is_null($this->tableSuffix) && $this->tableSuffix = Pithy::config("Model.Suffix");
+        
         $this->query["table"] = $this->fetchTableName();
-
+        is_string($this->json) && $this->json = explode(",", $this->json);
         
         // 子类初始化
         method_exists($this, "_init") && call_user_func(array($this, "_init"), $config);
@@ -436,6 +437,15 @@ class Model extends PithyBase {
             if ($force) throw new Exception(is_null($rows) ? "模型数据查询出错" : "模型未查询到符合条件的数据");
             return $rows;
         }
+
+        if (!empty($this->json)) {
+            foreach ($rows as $i => $row) {
+                foreach ($this->json as $key) {
+                    $rows[$i][$key] = json_decode($row[$key], true, 512, JSON_BIGINT_AS_STRING);
+                }
+            }
+        }
+
         Pithy::trigger("model.read.after", array($this, &$rows));
         
         is_string($field) && !empty($field) && $rows = array_column($rows, $field, $this->fetchTablePK());
@@ -625,8 +635,6 @@ class Model extends PithyBase {
         $field = $this->fetchTableField();
         if (empty($field)) return $data;
 
-        is_string($this->json) && $this->json = explode(",", $this->json);
-
         foreach ($data as $key => $val){
             if (!in_array($key, array_keys($field))) {
                 unset($data[$key]);
@@ -653,10 +661,10 @@ class Model extends PithyBase {
                     $data[$key] = preg_replace("/[^0-9:\-\s]+/", "", $val);
                 }
                 if (!$save && in_array($key, $this->json)) {
-                    $data[$key] = json_decode($val, true);
+                    $data[$key] = json_decode($val, true, 512, JSON_BIGINT_AS_STRING);
                 }
             }
-            elseif (!is_null($val)) {
+            elseif (!is_null($val) && !in_array($key, $this->json)) {
                 throw new Exception("模型属性 {$key} 的数据类型不符");
             }
             

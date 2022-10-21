@@ -64,7 +64,7 @@ class Controller extends PithyBase {
         
         // 条件跳转
         if (is_object($this->view) && method_exists($this->view, "show") && in_array($method, array('show', 'info', 'message', 'msg', 'succeed', 'failed', 'success', 'failure', 'error'))){
-            !(isset($params["rtn"]) || is_int($params[count($params)-1]) || (is_array($params[0]) && isset($params[0]["rtn"]))) && $params["rtn"] = in_array($method, array('failed', 'failure', 'error')) ? 1 : 0;
+            !(isset($params["rtn"]) || (count($params) > 0 && is_int($params[count($params)-1])) || (isset($params[0]) && is_array($params[0]) && isset($params[0]["rtn"]))) && $params["rtn"] = in_array($method, array('failed', 'failure', 'error')) ? 1 : 0;
             //Pithy::debug("show:", $params);
             return call_user_func_array(array($this->view, "show"), $params);
         }
