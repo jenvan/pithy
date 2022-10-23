@@ -161,7 +161,7 @@ class Database
     public function __call($method, $args) {
 
         // 连贯操作的实现 
-        if( in_array(strtolower($method), array('table','field','join','where','having','group','order','limit','page','lock','distinct'), true) ) {
+        if( in_array(strtolower($method), array('lock','table','distinct','field','join','where','group','having','order','limit'), true) ) {
             $this->options[strtolower($method)] = $args[0];
             return $this;
         }
@@ -781,14 +781,6 @@ class Database
      */
     public function select($options=array()) {
         $options = empty($options) ? $this->options : $options;
-        if(isset($options['page'])) {
-            // 根据页数计算limit
-            list($page,$listRows) =  explode(',',$options['page']);
-            $page    = $page?$page:1;
-            $listRows = $listRows?$listRows:($options['limit']?$options['limit']:20);
-            $offset  =  $listRows*((int)$page-1);
-            $options['limit'] =  $offset.','.$listRows;
-        }
         $sql = str_replace(
         array('%TABLE%','%DISTINCT%','%FIELDS%','%JOIN%','%WHERE%','%GROUP%','%HAVING%','%ORDER%','%LIMIT%'),
         array(
