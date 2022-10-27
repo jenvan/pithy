@@ -332,10 +332,10 @@ class Model extends PithyBase {
         if (is_array($condition)) {
             $this->query["where"][] = $condition;
         }
-        if (is_numeric($condition) || (is_string($condition) && preg_match("/^[\w\.\-_]$/", $condition))) {
-            $this->query["where"][] = array($this->fetchTablePK(), "=", $condition);
+        else if (is_numeric($condition) || (is_string($condition) && preg_match("/^[\w\.\-_]$/", $condition))) {
+            $this->query["where"][] = empty($data) ? array($this->fetchTablePK(), "=", $condition) : array($condition, "=", $data);
         }
-        if (is_string($condition) && is_array($data)) {
+        else if (is_string($condition) && is_array($data)) {
             $this->query["where"][] = array($condition, $data);
         }
 
