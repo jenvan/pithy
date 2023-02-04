@@ -6,7 +6,6 @@ return array(
            
     // 命令行设置
     'Command' => array(
-        'Root' => PITHY_APPLICATION."command/",
         'Map' => array(
             
         ),

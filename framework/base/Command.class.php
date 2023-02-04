@@ -46,12 +46,26 @@ class Command extends PithyBase {
 
     // 指定日志文件名称
     public $logName = "";
+    
+    // 当前执行的 group
+    protected $_group = "";
+
+    // 当前执行的 module
+    protected $_module = "";
 
     // 当前执行的 action
     private $_action = "";
 
     // 当前执行的 params
     private $_params = "";
+
+    public function getGroup(){
+        return $this->_group;
+    }
+
+    public function getModule(){
+        return $this->_module;
+    }
 
     public function getAction(){
         return $this->_action;
@@ -60,6 +74,12 @@ class Command extends PithyBase {
     public function getParams(){
         return $this->_params;
     }
+
+    public function getCommander(){
+        return $this->module.(empty($this->group) ? "" : "@".$this->group);
+    }
+
+
     
     /**
      * 初始化   
@@ -98,41 +118,45 @@ class Command extends PithyBase {
      *          
      */
     static public function factory($name){
+
+        $root = PITHY_APPLICATION;
+        list($name, $group) = explode("@", $name."@");
+        if (!empty($group)) {
+            $root .= "@{$group}/";
+            Pithy::import("~.@".$group.".extend.*");
+        }
         
         $class = ucfirst(strtolower($name))."Command";
-        $args = array(); 
-         
-        $root = Pithy::config("Command.Root");
+        $args = array();
+
         $map = Pithy::config("Command.Map");
-        if (isset($map[$name])){
-            if (is_array($map[$name])){
-                $path = $map[$name]["path"];
-                unset($map[$name]["path"]);
-                $args = $map[$name];
-            }
-            else{
-                $path = $map[$name];
-            }
-        }
-        else{
+        if (empty($map) || !isset($map[$name])){
             $path = $class;
         }
-        
-        if (strstr($path, "/") == "" || strstr($path, "\\") == ""){
-            $path = $root.$path.".class.php";
+        elseif (is_array($map[$name])){
+            $path = $map[$name]["path"];
+            unset($map[$name]["path"]);
+            $args = $map[$name];
         }
-        
+        else{
+            $path = $map[$name];
+        }
+        if (strstr($path, "/") == "" || strstr($path, "\\") == ""){
+            $path = $root."command/".$path.".class.php";
+        }
         
         $exists = Pithy::import($path);
         if (!$exists){
             Command::singleton()->exception("命令行 {$name} 不存在！");
-        }                
-        
+        }
         
         $object = Pithy::instance($class, $args);
         if (!is_object($object) || !is_subclass_of($object, "Command")){
             Command::singleton()->exception("命令行 {$class} 类型出错！");
         }
+
+        !empty($group) && $object->_group = $group;
+        $object->_module = strtolower($name);
         
         return $object;
     }
@@ -210,7 +234,8 @@ class Command extends PithyBase {
      * 运行外部控制器的 action
      * 
      * @param string $command 命令名称
-     * @param mixed $args 参数 数组或空格隔开的字符串
+     * @param string $action 命令动作
+     * @param array $args 参数 数组或空格隔开的字符串
      * @return mixed
      */
     final public function call($command = "", $action = "", $args = null){
@@ -231,6 +256,19 @@ class Command extends PithyBase {
         
         $arr = $this->parse($args);
         self::factory($command)->run($action, $arr["params"], $arr["vars"]); 
+    }
+
+    /**
+     * 开启新的 command 进程
+     * 
+     * @param string $command
+     * @param string $action
+     * @param array $params
+     * @return mixed
+     */
+    public function fork($command, $action, $params = array()) {
+        $args = empty($params) ? "" : "--".urldecode(http_build_query($params, "", " --"));
+        return Pithy::execute("php", PITHY_APPLICATION."pithy.php {$command} {$action} {$args} --ts=".date("YmdHis"));
     }
     
     /**

@@ -59,8 +59,8 @@ class Model extends PithyBase {
     // 模型数据（经过处理）
     private $data = array();
 
-    // 本模型是否为包含数据的单一数据集
-    private $single = false;
+    // 本模型是否已指定数据集
+    private $assigned = false;
     
 
     /**
@@ -277,33 +277,29 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      */
     public function load($data) {
-        if (is_array($data)) {
+        if (empty($data) || !is_array($data)) {
+            $this->data = array();
+        }
+        else {
             foreach ($data as $key => $val) {
                 $this->__set($key, $val);
             }
         }
-        else {
-            $this->data = array();
-        }
-        $this->single = !empty($this->data);
+        $this->assigned = !empty($this->data);
         return $this;
     }
 
     /**
      +----------------------------------------------------------
-     * 返回模型数据
+     * 清空模型数据
      +----------------------------------------------------------
      * @access public
      +----------------------------------------------------------
      * @return object
      +----------------------------------------------------------
      */
-    public function data() {
-        $arr = $this->data;
-        foreach ($arr as $key => $val) {
-            $arr[$this->convert($key, true)] = $val;
-        }
-        return $arr;
+    public function clear() {
+        return $this->load(null);
     }
 
 
@@ -319,12 +315,12 @@ class Model extends PithyBase {
      * @return object 对象本身
      +----------------------------------------------------------
      */
-    public function where($condition = "", $data = array()) {        
-        $this->single = false;
+    public function where($condition = "", $data = array()) {
+        $this->assigned = false;
 
         if (empty($condition)) {
             $this->query["where"] = array();
-            return ;
+            return $this;
         }
         
         empty($this->query["where"]) && $this->query["where"] = array();
@@ -332,7 +328,7 @@ class Model extends PithyBase {
         if (is_array($condition)) {
             $this->query["where"][] = $condition;
         }
-        else if (is_numeric($condition) || (is_string($condition) && preg_match("/^[\w\.\-_]$/", $condition))) {
+        else if (is_numeric($condition) || (is_string($condition) && preg_match("/^[\w\.\-_]+$/", $condition))) {
             $this->query["where"][] = empty($data) ? array($this->fetchTablePK(), "=", $condition) : array($condition, "=", $data);
         }
         else if (is_string($condition) && is_array($data)) {
@@ -427,6 +423,7 @@ class Model extends PithyBase {
      */
     public function select($field = "", $force = false) {
         is_bool($field) && $force = $field;
+
         $this->query["table"] = $this->fetchTableName();
 
         $rows = null;
@@ -467,11 +464,17 @@ class Model extends PithyBase {
      */
     public function find($field = "", $force = false) {
         is_bool($field) && $force = $field;
+
         $this->query["limit"] = 1;
 
         $rows = $this->select($force);
 
-        $data = $this->load(empty($rows) ? null : $rows[0])->data();
+        $this->load(empty($rows) ? null : $rows[0]);
+
+        $data = $this->data;
+        foreach ($data as $key => $val) {
+            $data[$this->convert($key, true)] = $val;
+        }
 
         if (empty($field)) return $data;
 
@@ -488,45 +491,53 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      * @access public
      +----------------------------------------------------------
-     * @param mixed $data 数据
-     * @param string $allow 允许保存的字段
-     * @param string $mode 保存选项 (replace,ignore)
+     * @param array $data 数据
+     * @param mixed $allow 允许保存的字段（数组或用,隔开的字符串）
+     * @param mixed $force 强制保存模式 (true|false|"":不为空时，若where不为空则先查询再判断是update还是insert)
      +----------------------------------------------------------
-     * @return boolean
+     * @return boolean 是否保存成功
      +----------------------------------------------------------
      */
-    public function save($data = array(), $allow = "", $mode = "") {
+    public function save($data = array(), $allow = "", $force = "") {
         if (empty($data)) {
             if  (empty($this->data)) {
                 throw new Exception("模型缺少数据");
             }
             $data = $this->data;
         }
+        if (is_bool($allow)) {
+            $force = $allow;
+            $allow = "";
+        }
 
         $pk = $this->fetchTablePK();
 
-        // 判断操作
-        $job = ($this->single || !empty($this->query["where"])) ? "update" : "insert";
-
         // 数据过滤
         if (!empty($allow)) {
-            $data = array_intersect_key($data, array_flip(explode(",", $allow)));
+            is_string($allow) && $allow = explode(",", $allow);
+            $data = array_intersect_key($data, array_flip($allow));
         }
         $data = $this->filter($data, true);
 
+        // 判断数据库操作
+        is_bool($force) && !empty($this->query["where"]) && $this->find();
+        $this->assigned && $this->where(array($pk, "=", $this->data[$pk]));
+        $job = empty($this->query["where"]) ? "insert" : "update";
+
         // 保存前事件
         $this->query["table"] = $this->fetchTableName();
-        if (false === Pithy::trigger("model.write.before.".$job, array($this, &$this->query, &$data)))
+        if (false === Pithy::trigger("model.write.before.".$job, array($this, &$this->query, &$data))) {
             return false;
-        
-        // 保存数据
-        $this->single && $this->where(array($pk, "=", $this->data[$pk]));
+        }
+
+        // 保存
+        $mode = is_bool($force) ? ($force ? "replace" : "ignore") : "";
         $rtn = $this->db->$job($data, $this->query, $mode);
         $this->query = array();
-        !$this->single && $data[$pk] = $rtn;
-        $this->load($data);
 
         // 保存后事件
+        $job == "insert" && $data[$pk] = $rtn;
+        $this->load($data);
         Pithy::trigger("model.write.after.".$job, array($this, &$this->data));
 
         return !empty($rtn);
@@ -540,14 +551,14 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      * @param string $key 主键
      +----------------------------------------------------------
-     * @return mixed
+     * @return int 删除的记录条数
      +----------------------------------------------------------
      */
     public function delete($key = "") {
         
         // 如果删除条件为空，则删除当前数据对象所对应的记录
         $pk = $this->fetchTablePK();
-        if ($this->single && empty($key)) {
+        if ($this->assigned && empty($key)) {
             if (empty($this->data) || !isset($this->data[$pk]))
                 return false;
             $key = $this->data[$pk];
@@ -564,8 +575,9 @@ class Model extends PithyBase {
 
         // 删除前事件
         $this->query["table"] = $this->fetchTableName();
-        if (false === Pithy::trigger("model.write.before.delete", array($this, &$this->query))) 
+        if (false === Pithy::trigger("model.write.before.delete", array($this, &$this->query))) {
             return false;
+        }
 
         // 删除
         $rtn = $this->db->delete($this->query);
@@ -603,7 +615,7 @@ class Model extends PithyBase {
      * @param string $str 名称
      * @param boolean $toCamel 强制转换成 驼峰命名
      +----------------------------------------------------------
-     * @return String
+     * @return string
      +----------------------------------------------------------
      */
     protected function convert($str, $toCamel = true) {

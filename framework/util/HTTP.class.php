@@ -19,7 +19,7 @@ class HTTP{
             CURLOPT_FAILONERROR => 0,
             CURLOPT_FOLLOWLOCATION => 1,
             CURLOPT_RETURNTRANSFER => 1,
-            CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.112 Safari/537.36",
+            CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
         );
         if (substr($url, 0, 8) == "https://") {
             $config[CURLOPT_SSL_VERIFYPEER] = 0;
