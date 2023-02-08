@@ -27,16 +27,22 @@ class View extends PithyBase {
     protected $controller = null;
     
     // 视图数据
-    public $data = array();  
+    public $data = array();
 
     // 顶级布局文件路径、布局文件内容、需替换的内容块
     private $_layoutTop = "", $_layoutContent = array(), $_blocks = array();
     
+    // SEO 信息
+    private $_seo = array();
+
+    // TAG 信息
+    private $_tag = array();
+
     // 资源文件路径
     private $_assets = array();
 
     // 已注册的资源文件路径  
-    private $_paths = array();      
+    private $_paths = array();
 
 
     /**
@@ -70,28 +76,28 @@ class View extends PithyBase {
     +----------------------------------------------------------
     * @param string $template 模板名
     +----------------------------------------------------------
-    * @return string                                             
+    * @return string
     +----------------------------------------------------------
     */
     private function getPath($template) {
-                                       
+        
         $group = empty($this->group) ? "" : "@" . $this->group;
         if ( ($pos = strpos($template, "@")) > 0){
             $group = substr($template, $pos);
             $template = substr($template, 0, $pos);
         } 
-                                                                                 
+
         $theme = empty($this->theme) ? "" : "$" . $this->theme;
         
         if (substr($template, 0, 2) == "//")
-            $template = "/view/".$theme."/".substr($template, 2);   
+            $template = "/view/".$theme."/".substr($template, 2);
         elseif (substr($template, 0, 1) == "/")
             $template = "/".$group."/view/".$theme."/".substr($template, 1);
         else
             $template = "/".$group."/view/".$theme."/".$this->module."/".$template;
         $template = str_replace("//", "/", $template);
-                                                                                 
-        // 检查当前主题下是否存在对应的视图文件，不存在则在默认主题下查找，还不存在则显示错误提示            
+
+        // 检查当前主题下是否存在对应的视图文件，不存在则在默认主题下查找，还不存在则显示错误提示
         $filepath = PITHY_APPLICATION."/".$template.Pithy::config("View.Template.Suffix");
         if (!Pithy::exists($filepath)){
             $filepath = str_replace($theme, "", $filepath);
@@ -101,12 +107,12 @@ class View extends PithyBase {
             }
         }
 
-        return $filepath;       
-    }      
+        return $filepath;
+    }
     
     /**
      * 获取模板样式
-     *                                      
+     *
      */
     protected function getTheme(){
         $theme = !empty($this->controller->theme) ? $this->controller->theme : Pithy::config("View.Template.Theme");
@@ -143,26 +149,26 @@ class View extends PithyBase {
     * @return string 
     +----------------------------------------------------------
     */
-    public function fetch($arg1=null, $arg2=null) {
+    public function fetch($arg1 = null, $arg2 = null) {
 
         // 分析参数并给相关变量赋值
-        $template = $this->template;  
+        $template = $this->template;
         $params = $this->params;
         if (!empty($arg1) && is_string($arg1))
-            $template = $arg1;                
+            $template = $arg1;
         if (!empty($arg2) && is_string($arg2))
-            $template = $arg2;                
+            $template = $arg2;
         if (!empty($arg1) && is_array($arg1))
-            $params = $arg1 + $params;                
+            $params = $arg1 + $params;
         if (!empty($arg2) && is_array($arg2))
             $params = $arg2 + $params;
         
         $this->data = $params;
-        
-        // 获取最终模板路径                                   
+
+        // 获取最终模板路径
         $filepath = $this->getPath($template);
         //Pithy::debug("模板路径：", $filepath);
-        //Pithy::debug("模板数据：", $params);        
+        //Pithy::debug("模板数据：", $params);
 
         // 开始页面缓存
         ob_start();
@@ -189,53 +195,46 @@ class View extends PithyBase {
     * @return string
     +----------------------------------------------------------
     */
-    public function render($content="", $headers=array()) {
+    public function render($content = "", $headers = array()) {
         
         if (is_array($content)){
-            $content = isset($content[0]) ? call_user_func_array(array($this, "fetch"), $content) : call_user_func(array($this, "fetch"), $content);   
+            $content = isset($content[0]) ? call_user_func_array(array($this, "fetch"), $content) : call_user_func(array($this, "fetch"), $content);
         }
 
-        if (!$this->render_before($content))
-            return; 
+        empty($this->_seo) && $this->_seo = array(Pithy::config("App.Name"));
+        empty($this->_tag) && $this->tag("APPNAME", Pithy::config("App.Name"));
 
-        // 获取布局路径         
-        $layout = $this->layout;                        
+        // 获取布局路径
+        $layout = $this->layout;
         
         // 加载布局
         $this->extend($layout);
 
         // 获取布局内容
-        $html = $this->_layoutContent[$this->_layoutTop];        
+        $html = $this->_layoutContent[$this->_layoutTop];
 
         // 替换布局内容
-        $html = $this->blockReplace ($html);
-        $html = str_replace("<!--{ ".Pithy::config("View.Tag.Content")." }-->", $content, $html);    
+        $html = $this->blockReplace($html);
+        $html = str_ireplace("<!--{ ".Pithy::config("View.Tag.Content")." }-->", $content, $html);
+        $html = str_ireplace(array("<!--{ TITLE }-->", "<!--{ KEYWORD }-->", "<!--{ DESCRIPTION }-->"), array_values($this->_seo), $html);
+        $html = str_ireplace(array_keys($this->_tag), array_values($this->_tag), $html);
         !PITHY_DEBUG && $html = preg_replace("/([\s]*<\!\-\-[^>]*\-\->[\s]*)/im", "", $html);
-  
-        // 发布 app 的视图目录下的资源文件                          
-        $folder = PITHY_APPLICATION."/view/".$this->theme."/assets";
-        $this->publish("app", $folder); 
-
-        // 发布 当前分组 和 当前模块 的视图目录下的资源文件                                 
-        $folder1 = PITHY_APPLICATION."/@".$this->group."/view/".$this->theme."/assets";
-        $folder2 = PITHY_APPLICATION."/@".$this->group."/view/".$this->theme."/".$this->module."/assets";
-        $this->publish (array("group" => $folder1, "module" => $folder2));
 
 
         // 加载脚本文件
-        if (!empty($this->_paths)){ 
+        if (!empty($this->_paths)){
             
             $codes = array("HEAD_HEAD"=>array(), "HEAD_TAIL"=>array(), "BODY_HEAD"=>array(), "BODY_TAIL"=>array());
             
-            foreach ($this->_paths as $item){                 
+            foreach ($this->_paths as $item){
                 $attr = ""; 
                 foreach($item as $k => $v){
                     if (in_array($k, array("tag","pos","weight")))
                         continue;
                     $attr .=" {$k}='{$v}'";
                 }
-                $code = "<".$item["tag"].$attr."></".$item["tag"].">\r\n";                      
-                $codes[$item["pos"]][$item["weight"]] = isset($codes[$item["pos"]][$item["weight"]]) ? $codes[$item["pos"]][$item["weight"]].$code : $code; 
+                $code = "<".$item["tag"].$attr."></".$item["tag"].">\r\n";
+                $codes[$item["pos"]][$item["weight"]] = isset($codes[$item["pos"]][$item["weight"]]) ? $codes[$item["pos"]][$item["weight"]].$code : $code;
             }
             
             foreach($codes as $pos => $arr){
@@ -245,59 +244,58 @@ class View extends PithyBase {
                 list($tag, $tail) = explode("_", strtolower($pos));
                 $tail = $tail == "tail" ? true : false;
                 
-                $pattern = '/(<'.($tail ? '\\/' : '').$tag.'\s*>)/is';                
+                $pattern = '/(<'.($tail ? '\\/' : '').$tag.'\s*>)/is';
                 if (preg_match($pattern, $html, $matches))
                     $html = str_replace($matches[1], ($tail ? $code.$matches[1] : $matches[1].$code), $html);
                 else
                     $html = $tail ? $html.$code : $code.$html;
             }
-        }    
+        }
 
+
+        // 发布 app 的视图目录下的资源文件
+        $folder = PITHY_APPLICATION."/view/".$this->theme."/assets";
+        $this->publish("app", $folder); 
+
+        // 发布 当前分组 和 当前模块 的视图目录下的资源文件
+        $folder1 = PITHY_APPLICATION."/@".$this->group."/view/".$this->theme."/assets";
+        $folder2 = PITHY_APPLICATION."/@".$this->group."/view/".$this->theme."/".$this->module."/assets";
+        $this->publish(array("group" => $folder1, "module" => $folder2));
         
-        // 替换资源文件路径        
+        // 替换资源文件路径
         $assets_app = isset($this->assets["app"]) ? $this->assets["app"] : "";
-        $assets_group = isset($this->assets["group"]) ? $this->assets["group"] : $assets_app;         
-        $assets_module = isset($this->assets["module"]) ? $this->assets["module"] : $assets_group;         
+        $assets_group = isset($this->assets["group"]) ? $this->assets["group"] : $assets_app;
+        $assets_module = isset($this->assets["module"]) ? $this->assets["module"] : $assets_group;
         $pattern = array(
-            "|([=\(\s]+)(['\"]+)([\\.\\./]{2,}assets)|is",
-            "|([=\(\s]+)(['\"]+)(\\.\\./assets)|is",
-            "|([=\(\s]+)(['\"]+)(\\./assets)|is",
-       );
+            "|([=\(\s]+)(['\"]+)(//assets)|is",
+            "|([=\(\s]+)(['\"]+)(/assets)|is",
+            "|([=\(\s]+)(['\"]+)(\./assets)|is",
+        );
         $replace = array(
-            "\$1 \$2".$assets_app,
-            "\$1 \$2".$assets_group,
-            "\$1 \$2".$assets_module,
-       );                       
+            "\\1\\2".$assets_app,
+            "\\1\\2".$assets_group,
+            "\\1\\2".$assets_module,
+        );
         $html = preg_replace($pattern, $replace, $html);
 
 
         // header控制 (网页内容类型及字符编码、缓存有效期等)
         if (!headers_sent()){
             
-            if (isset($headers["contentType"]) && !empty($headers["contentType"]))  
-                $contentType = $headers["contentType"];                        
-            if (isset($headers["charset"]) && !empty($headers["charset"]))  
-                $charset = $headers["charset"];       
+            if (isset($headers["contentType"]) && !empty($headers["contentType"]))
+                $contentType = $headers["contentType"];
+            if (isset($headers["charset"]) && !empty($headers["charset"]))
+                $charset = $headers["charset"];
             if (isset($contentType, $charset) && !empty($contentType) && !empty($charset))
-                header("Content-Type:".$contentType."; charset=".$charset); 
-                   
-        }         
+                header("Content-Type:".$contentType."; charset=".$charset);
+            
+        }
 
-        
-        if (!$this->render_after($html))
-            return;
 
         // 输出页面代码
         echo $html;
     }
-    
-    public function render_before(&$content){
-        return true;
-    } 
-    
-    public function render_after(&$html){
-        return true;     
-    }
+
 
 
     /**
@@ -423,18 +421,19 @@ class View extends PithyBase {
     }
     
     
-    public function block($name, $content=""){
-        $this->_blocks = array($name => $content) + $this->_blocks;    
-    }        
+    public function block($name, $content = ""){
+        $name = strtoupper($name);
+        $this->_blocks = array($name => $content) + $this->_blocks;
+    }
     public function blockBegin($name){
         $this->block($name);
         ob_start();    
     }
-    public function blockEnd(){        
+    public function blockEnd(){
         reset($this->_blocks);
         $name = key($this->_blocks);
-        $content = ob_get_clean(); 
-        $this->block($name, $content);   
+        $content = ob_get_clean();
+        $this->block($name, $content);
     }
     private function blockReplace($html){
         
@@ -444,30 +443,72 @@ class View extends PithyBase {
         // 替换简写标签
         $html = preg_replace("/<\!\-\-\{ block (\S*) \}\-\->/im", "<!--{ block_begin \\1 }--><!--{ block_end }-->", $html);
         
-        // 替换所有标签            
+        // 替换所有标签
         $pattern = "/<\!\-\-\{ block_begin (\S*) \}\-\->([\S|\s]*?)<\!\-\-\{ block_end \}\-\->/im";
         if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER)){
             foreach ($matches as $match){
-                if (isset($this->_blocks[$match[1]])){
-                    $code = $this->_blocks[$match[1]];
-                    $html = preg_replace(str_replace("(\S*)", $match[1], $pattern), "\r\n<!--{ block_begin ".$match[1]." }-->\r\n".$code."\r\n<!--{ block_end }-->", $html);  
-                    unset($this->_blocks[$match[1]]);     
-                }                    
-            }             
+                $tag = strtoupper($match[1]);
+                if (isset($this->_blocks[$tag])){
+                    $code = $this->_blocks[$tag];
+                    $html = preg_replace(str_replace("(\S*)", $tag, $pattern), "\r\n<!--{ block_begin ".$tag." }-->\r\n".$code."\r\n<!--{ block_end }-->", $html);
+                    unset($this->_blocks[$tag]);
+                }
+            }
         }
  
         // 如果替换过标签，则继续替换一次，可以保证替换后的内容中的标签再次被替换
         if (isset($code))
-            return $this->blockReplace($html);  
+            return $this->blockReplace($html);
     
-        return $html;                       
+        return $html;
     }
-        
-    public function widget($name, $params=array(), $expires=0){
-        
-    }  
+
+    public function widget($name, $params = array(), $expires = 0){
+
+    }
     
 
+    /**
+    +----------------------------------------------------------
+    * 页面 SEO
+    +----------------------------------------------------------
+    * @access public
+    +----------------------------------------------------------
+    * @param string $title 页面标题
+    * @param string $keyword 页面关键字
+    * @param string $description 页面描述
+    +----------------------------------------------------------
+    * @return mixed
+    +----------------------------------------------------------
+    */
+    public function seo($title, $keyword = "", $description = ""){
+        $this->_seo["title"] = $title;
+        !empty($keyword) && $this->_seo["keyword"] = $keyword;
+        !empty($description) && $this->_seo["description"] = $description;
+    }
+
+    /**
+    +----------------------------------------------------------
+    * 页面 TAG
+    +----------------------------------------------------------
+    * @access public
+    +----------------------------------------------------------
+    * @param mixed $name 标签名称
+    * @param string $value 标签内容
+    +----------------------------------------------------------
+    * @return mixed
+    +----------------------------------------------------------
+    */
+    public function tag($name, $value = ""){
+        $arr = is_array($name) ? $name : array($name => $value);
+        $arr = Pithy::merge($this->_tag, $arr);
+        $tmp = array();
+        foreach ($arr as $key => $val) {
+            if (!is_string($key) || !is_scalar($val)) continue;
+            $tmp["<!--{ ".strtoupper($key)." }-->"] = $val;
+        }
+        $this->_tag = $tmp;
+    }
 
     /**
     +----------------------------------------------------------
@@ -476,39 +517,50 @@ class View extends PithyBase {
     * @access public
     +----------------------------------------------------------
     * @param string $name 资源名称
-    * @param string $folder 资源路径      
+    * @param string $folder 资源路径
     +----------------------------------------------------------
     * @return mixed
     +----------------------------------------------------------
     */
-    public function publish($name, $folder=""){            
+    public function publish($name, $folder = ""){
+        $root = str_replace(array("\\", "//"), "/", Pithy::config("View.Assets.Root"));
+        (empty($root) || $root == "/") && $root = PITHY_HOME;
+        substr($root, 0, strlen(PITHY_HOME)) == PITHY_HOME || $root = PITHY_HOME.$root."/";
+        
+        $host = str_replace(array("\\", "//"), "/", Pithy::config("View.Assets.Host"));
+        empty($host) && $host = "/";
 
-        if (!is_array ($name))
-            $arr = array($name => $folder);
-        else
-            $arr = $name;
+        $arr = is_array($name) ? $name : array($name => $folder);
+        foreach ($arr as $key => $src){
+            $src = str_replace(array("\\", "//"), "/", $src);
+            if (!Pithy::exists($src)) {
+                continue;
+            }
 
-        foreach($arr as $name=>$folder){
+            $suffix = substr(md5($src), -8);
 
-            if (!Pithy::exists ($folder)) 
-                return false;
+            $dst = str_replace(array("\\", "//"), "/", $root.$suffix);
+            if (PITHY_DEBUG || !Pithy::exists($dst) || Pithy::config("View.Assets.Publish")){
+                $this->deepCopy($src, $dst);
+            }
 
-            $suffix = "";            
-            if (Pithy::config("View.Assets.Publish")){
+            $this->_assets = Pithy::merge($this->_assets, array($key => $host.$suffix));
+        }
+    }
 
-            } 
-
-            $arr[$name] = Pithy::config("View.Assets.Prefix").$suffix;            
-
-        }    
-
-        $this->_assets = array_merge ($this->_assets, $arr);
-
-        return true;
-    } 
+    private function deepCopy($src, $dst) {
+        $dir = opendir($src); 
+        !is_dir($dst) && @mkdir($dst, true);
+        while (false !== ($file = readdir($dir))) {
+            if (in_array($file, array(".", ".."))) continue;
+            $func = is_dir($src."/".$file) ? array($this, "deepCopy") : "copy";
+            call_user_func($func, $src."/".$file, $dst."/".$file);
+        }
+        closedir($dir);
+    }
 
     public function getAssets(){
-        return $this->_assets;    
+        return $this->_assets;
     }
 
 
@@ -519,23 +571,23 @@ class View extends PithyBase {
     * @access public
     +----------------------------------------------------------
     * @param string $filepath 文件路径
-    * @param array  $attr 标签相关属性     
+    * @param array  $attr 标签相关属性
     +----------------------------------------------------------
     * @return void
     +----------------------------------------------------------
     */
-    public function register($filepath, $attr=array(), $pos="", $weight=0){
+    public function register($filepath, $attr = array(), $pos = "", $weight = 0){
 
         $arr = array();
 
         if (is_string($attr))
-            $attr = array("pos"=>$attr);        
+            $attr = array("pos"=>$attr);
         if (is_numeric($attr))
             $attr = array("weight"=>$attr);
         if (!empty($pos))
-            $attr["pos"] = $pos;  
+            $attr["pos"] = $pos;
         if (!empty($weight))
-            $attr["weight"] = $weight;        
+            $attr["weight"] = $weight;
 
         $ext = strtolower(substr($filepath, strrpos($filepath, ".") + 1));
  
@@ -547,7 +599,7 @@ class View extends PithyBase {
         if ($ext == "js"){
             $arr["tag"] = "script";
             $arr["language"] = "javascript";
-            $arr["src"] = $filepath;                
+            $arr["src"] = $filepath;
         }
         
         if (!isset($arr["tag"]) || empty($arr["tag"]))
@@ -558,8 +610,8 @@ class View extends PithyBase {
             $arr["pos"] = "HEAD_TAIL";
         if (!isset($arr["weight"]))
             $arr["weight"] = 0;
-                
-        $this->_paths[] = $arr; 
-    }     
+
+        $this->_paths[] = $arr;
+    }
 
 }

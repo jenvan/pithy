@@ -123,6 +123,8 @@ class Command extends PithyBase {
         list($name, $group) = explode("@", $name."@");
         if (!empty($group)) {
             $root .= "@{$group}/";
+            $config = @include(PITHY_APPLICATION."@".$group."/config.php");
+            $config && Pithy::config(Pithy::merge(Pithy::config(), $config), true);
             Pithy::import("~.@".$group.".extend.*");
         }
         

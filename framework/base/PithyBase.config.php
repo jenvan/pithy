@@ -124,8 +124,8 @@ return array(
         // 资源管理
         'Assets' => array(
             "Publish" => false,
-            "Root" => "",
-            "Prefix" => "/assets/",
+            "Root" => "/assets/",
+            "Host" => "/assets/",  // 可加上域名做 CDN
         ),
 
         // 简单页面显示配置

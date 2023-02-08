@@ -70,7 +70,7 @@ class Controller extends PithyBase {
         }
         
         // 视图类其他方法
-        if (is_object($this->view) && method_exists($this->view, $method) && in_array($method, array("fetch","render", "redirect", "forward", "goto"))){
+        if (is_object($this->view) && method_exists($this->view, $method) && in_array($method, array("fetch", "render", "redirect", "seo", "tag", "publish", "register"))){
             return call_user_func_array(array($this->view, $method), $params);
         }
         
@@ -92,7 +92,7 @@ class Controller extends PithyBase {
         Pithy::$terminator = array($this, "exception");
         
         // 获取路由类的实例
-        $this->router = Pithy::instance("Router", true); 
+        $this->router = Router::singleton(); 
         //$this->debug(">INIT : R={$this->route} G={$this->group} M={$this->module} A={$this->action} P=".json_encode($this->params));
 
         // 默认实例化系统自带的视图类(模板引擎)
@@ -116,6 +116,8 @@ class Controller extends PithyBase {
     public function exception($msg){ 
         if (PITHY_DEBUG && isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && "xmlhttprequest" == strtolower($_SERVER["HTTP_X_REQUESTED_WITH"]))
             $msg = preg_replace("/^([\s|\S]+)<h1>([^<]+)<\/h1>([\s|\S]+)$/m", "$2", $msg);
+        
+        Pithy::log($_SERVER["REQUEST_URI"]." -> ".$msg, 500);
     
         // 子类中是否存在 _exception 或 _error 方法，存在则调用
         if (method_exists($this, "_exception"))
@@ -131,8 +133,8 @@ class Controller extends PithyBase {
         exit($msg);
     } 
 
-    /**         
-     * 实例化指定的控制器    
+    /**
+     * 实例化指定的控制器
      *
      * @param string $id 控制器名称
      * @return Controller
@@ -143,18 +145,19 @@ class Controller extends PithyBase {
         $exists = Pithy::import($id);
         if (!$exists){
             header("HTTP/1.0 404 Not Found");
-            //Pithy::debug("404 NOT FOUND:", $_SERVER["REQUEST_URI"]);
-            Controller::singleton()->exception("控制器 {$id} 不存在！");
+            Pithy::log($_SERVER["REQUEST_URI"], 404);
+            Controller::singleton()->exception("模块 {$id} 不存在！");
         }
-        
-        $class = preg_replace("/@.*$/", "", substr($id, strrpos($id, ".")+1));
+
+        list($class, $group) = explode("@", substr($id, strrpos($id, ".") + 1));
+        !empty($group) && Pithy::import("~.@".$group.".extend.*");
         $object = Pithy::instance($class);
         if (!is_object($object) || !is_subclass_of($object, "Controller")){
             Controller::singleton()->exception("控制器 {$class} 类型出错！");
         }
 
-        return $object;    
-    }   
+        return $object;
+    }
     
     /**
      +----------------------------------------------------------
@@ -169,10 +172,9 @@ class Controller extends PithyBase {
      * @return mixed
      +----------------------------------------------------------
      */
-    final public function call($route, $params=null, $enable=true){
+    final public function call($route, $params = null, $enable = true){
         $arr = $this->router->parse($route);
-        !empty($arr["group"]) && Pithy::import("~.@".$arr["group"].".extend.*");
-        return self::factory($arr["controller"])->run($arr["action"], $params, $enable); 
+        return self::factory($arr["entry"])->run($arr["action"], $params, $enable);
     }
 
     /**
@@ -188,7 +190,7 @@ class Controller extends PithyBase {
      * @return mixed
      +----------------------------------------------------------
      */
-    final public function run($action="", $params=null, $enable=true){
+    final public function run($action = "", $params = null, $enable = true){
         
         // 参数判断
         1 == func_num_args() && is_bool($action) && $enable = $action;

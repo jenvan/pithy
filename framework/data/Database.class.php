@@ -659,7 +659,7 @@ class Database
                 $arr[] = $key." ".$val[2];
             }
             // 比较运算
-            elseif (preg_match("/^[=|>|<|\!]+$/i", $val[1])) {
+            elseif (preg_match("/^[=><\!]+$/i", $val[1])) {
                 $arr[] = $key." ".$val[1]." ".$this->parseValue($val[2]);
             }
             // LIKE 运算

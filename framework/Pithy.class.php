@@ -247,11 +247,6 @@ class Pithy{
 
         // 实例化路由类
         $router = Router::singleton();
-        
-        // 判断并加载分组的扩展
-        if ($router->group != ""){
-            Pithy::import("~.@".$router->group.".extend.*");
-        }
 
 
         /***********************************/ 
@@ -274,8 +269,8 @@ class Pithy{
         /***********************************/ 
         Pithy::benchmark("controller");
 
-        // 实例化控制器并执行动作 
-        Controller::factory($router->controller)->run();
+        // 实例化控制器并执行动作
+        Controller::factory($router->entry)->run();
 
 
         /***********************************/ 
@@ -701,11 +696,11 @@ class Pithy{
 
         // 默认的日志设置参数
         $config = array(
-            "type" => 3,            // 日志记录类型
+            "type" => "FILE",       // 日志记录类型
             "level" => "INFO",      // 日志记录级别
             "destination" => "",    // 日志记录位置  {PITHY_PATH_RUNTIME}/log/Ymd/{$level}.log
             "extra" => "",          // 日志扩展信息（日志记录类型为 MAIL 和 TCP 时使用，参见 error_log 函数)
-        );        
+        );
 
         // 参数是布尔时，是否强制调用 debug
         if (is_bool($options)){
@@ -716,20 +711,17 @@ class Pithy{
         // 合并参数
         !is_array($options) && $options = array($options);
         foreach ($options as $v){
-            // 参数是数字时，设置日志记录类型
-            if (is_int($v))
-                $config["type"] = $v;
-
-            // 参数是字符串时，设置日志记录级别或位置
-            if (is_string($v)){
-                if (in_array(strtoupper($v), $levels))
-                    $config["level"] = strtoupper($v); 
-                else
-                    $config["destination"] = $v;
-            }
+            if (!is_int($v) && !is_string($v))
+                continue;
+            if (in_array(strtoupper($v), array_keys($types)))
+                $config["type"] = strtoupper($v);
+            else if (in_array(strtoupper($v), $levels))
+                $config["level"] = strtoupper($v);
+            else
+                $config["destination"] = $v;
         }
 
-        // 设置相关变量            
+        // 设置相关变量
         $folder = PITHY_PATH_RUNTIME.DIRECTORY_SEPARATOR."log".DIRECTORY_SEPARATOR.date('Ymd').DIRECTORY_SEPARATOR;
         $now = date("Y-m-d H:i:s");
 
@@ -756,7 +748,7 @@ class Pithy{
             if ($type == $types["FILE"]){ 
                 if (!is_dir($folder) && (@mkdir($folder, 0777, true) == false || @chmod($folder, 0777) == false)){
                     array_push($data, "$now [ALERT] Can not mkdir($folder)!");
-                    return;        
+                    return;
                 }
                 if (is_file($destination) && floor(self::config("App.Log.Size")) <= filesize($destination)){
                     extract(pathinfo($destination));
@@ -776,13 +768,13 @@ class Pithy{
                 "message" => $message,
                 "level" => $level,
                 "category" => "Pithy.Extend.".basename($destination, ".log"),
-            );            
+            );
             return call_user_func_array($logger, array($args)); 
         }                                 
     }   
 
     // 错误处理
-    static public function error(){      
+    static public function error(){
 
         if (4 > func_num_args())
             return;

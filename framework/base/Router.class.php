@@ -22,13 +22,13 @@
  */
 class Router extends PithyBase {
 
-    private $_file;
-    private $_controller;
-    private $_route;
-    private $_group; 
-    private $_module;   
+    private $_history = array();
+
+    private $_group;
+    private $_module;
     private $_action;
     private $_params;
+
 
     public function initialize(){
 
@@ -39,40 +39,31 @@ class Router extends PithyBase {
         $url = substr($url, 0, 1) == "/" ? $url : preg_replace("/^(http[s]?:\/\/[^\/]+)/i", "", $url);
         $url = preg_replace("/(\/+)/", "/", $url);
 
-        // 更新路由
+        // 解析
         $arr = $this->parse($url, Pithy::merge($_GET, $_POST));
         
         // 赋值
-        $this->_file = $arr["file"];
-        $this->_controller = $arr["controller"]; 
-        $this->_route = $arr["route"];  
         $this->_group = $arr["group"];
         $this->_module = $arr["module"];
-        $this->_action = $arr["action"]; 
+        $this->_action = $arr["action"];
         $this->_params = $arr["params"];
-        
-        return;
-        
-        $this->debug("ROUTER:", array(
-            "url" => $url,
-            "file" => $this->file,
-            "controller" => $this->controller,
-            "route" => $this->route,
-            "group" => $this->group,
-            "module" => $this->module,
-            "action" => $this->action,
-            "params" => $this->params,
-        ));
-        
+
+        // 加载分组配置
+        if (!empty($arr["group"])) {
+            $config = @include(PITHY_APPLICATION."/@".$arr["group"]."/config.php");
+            $config && Pithy::config(Pithy::merge(Pithy::config(), $config), true);
+        }
+
+        return ;
     }
 
     // 将url地址解析成参数
-    public function parse($url, $params=array()){
+    public function parse($url, $params = array()){
 
         // 赋初值
-        $group = $this->group;
-        $module = $this->module;
-        $action = $this->action;
+        $group = "";
+        $module = "";
+        $action = "";
         $params = !is_array($params) ? array() : $params;
 
         // 将 url 分解成 目录 和 路径
@@ -150,20 +141,31 @@ class Router extends PithyBase {
 
         }
 
-        $group = strtolower($group);
-        $module = strtolower($module);
-        $action = strtolower($action);
+        if (empty($group)) {
+            $domain = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
+            $wildcard = preg_replace("/^[^\.]+\.(.+)$/i", "*.$1", $domain);
+            $groups = Pithy::config("Router.Groups");
+            foreach ($groups as $key => $list){
+                if (!is_array($list) || empty($list))
+                    continue;
+                if (in_array($domain, $list) || in_array($wildcard, $list)){
+                    $group = $key;
+                    break;
+                }
+            }
+        }
 
-        // 返回
-        return array(
-            "file" => $file,
-            "controller" => "~.controller.".ucfirst($module)."Controller".( empty($group) ? "" : "@{$group}" ), 
-            "route" => ( empty($group) ? "" : "/{$group}" ) . "/{$module}/{$action}",
-            "group" => $group,
-            "module" => $module,
-            "action" => $action,
+        $arr = array(
+            "group" => strtolower($group),
+            "module" => strtolower($module),
+            "action" => strtolower($action),
             "params" => $params,
         );
+        $arr["entry"] = $this->getEntry($arr);
+
+        array_push($this->_history, $arr);
+
+        return $arr;
     }
 
     // 将参数构建成url地址
@@ -175,44 +177,41 @@ class Router extends PithyBase {
     
 
     // 获取路由相关参数
-    public function getFile(){
-        return $this->_file;
+    public function getEntry($arr = "") {
+        empty($arr) && $arr = $this->first;
+        $group = !empty($arr["group"]) ? $arr["group"] : Pithy::config("Router.Default.group");
+        $module = !empty($arr["module"]) ? $arr["module"] : Pithy::config("Router.Default.module");
+        return "~.controller.".ucfirst($module)."Controller".(empty($group) ? "" : "@{$group}");
     }
-    public function getController(){
-        return $this->_controller;  
-    } 
+
+    public function getHistory() {
+        return $this->_history;
+    }
+    public function getFirst() {
+        return $this->_history[0];
+    }
+    public function getFinal() {
+        return array_slice($this->_history, -1);
+    }
+
     public function getRoute(){
-        return $this->_route;
-    } 
+        return (empty($this->group) ? "" : "/{$this->group}") . "/{$this->module}/{$this->action}";
+    }
     public function getGroup(){
-        $domain = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
-        $wildcard = preg_replace("/^[^\.]+\.(.+)$/i", "*.$1", $domain);
-        $groups = Pithy::config("Router.Groups");
-        foreach ($groups as $group => $list){
-            if (!is_array($list) || empty($list))
-                continue;
-            if (in_array($domain, $list) || in_array($wildcard, $list)){
-                $this->_group = $group;
-                break;
-            }
-        }      
-        if (empty($this->_group))
-            $this->_group = Pithy::config("Router.Default.group");
+        empty($this->_group) && $this->_group = Pithy::config("Router.Default.group");
         return $this->_group;
     }
     public function getModule(){
-        if (empty($this->_module))
-            $this->_module = Pithy::config("Router.Default.module");
+        empty($this->_module) && $this->_module = Pithy::config("Router.Default.module");
         return $this->_module;
     } 
     public function getAction(){
-        if (empty($this->_action))
-            $this->_action = Pithy::config("Router.Default.action");
-        return $this->_action;  
+        empty($this->_action) && $this->_action = Pithy::config("Router.Default.action");
+        return $this->_action;
     }
     public function getParams(){
-        if (!is_array($this->_params))
-            $this->_params = array();
+        !is_array($this->_params) && $this->_params = array();
         return $this->_params;
     }
+
 }
