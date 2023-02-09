@@ -108,13 +108,63 @@ return array(
         ),
         
         // 默认动作集合
-        "Actions" => array(),
+        "Actions" => array(
+            /*
+            "test" => "/help/test",
+            "demo" => array(
+                "route" => "/help/test",
+                "arg1" => 1,
+                "arg2" => array("a","b","c"),
+            ),
+            */
+        ),
         
         // 默认动作过滤集合
-        "Filters" => array(),
+        "Filters" => array(
+            /*
+            "filterA",
+            "filterB + index",
+            "filterC - test,temp",
+            */
+        ),
         
         // 默认动作规则集合
-        "Rules" => array(),
+        "Rules" => array(
+            /*
+            'example' => array(
+                'method' => 'get,post',
+                'require' => 'username,password,pithy_token|username,pass,code',
+                'fields' => array(
+                    'username' => array(
+                        'type' => 'regex',
+                        'rule' => '/[a-z0-9_]{4,10}/ig',
+                        'info' => '用户名不符合规则',
+                   ),
+                    'password' => array(
+                        'type' => 'function',
+                        'rule' => 'return strlen($var) >= 6 && strlen($var) <= 20;',
+                        'info' => '密码不符合规则',
+                   ),
+                    'pass' => array( 
+                        'type' => 'confirm',
+                        'rule' => 'password',
+                        'info' => '重复输入密码不一致',
+                   ),
+                    'code' => array(
+                        'type' => 'callback',
+                        'rule' => array($this, 'check'),
+                        'info' => '验证码错误',
+                   ),
+               ),
+           ),
+           'test1' => array(
+                'fields' => array(
+                    'page' => array('regex' => '/^[\d]+$/'),
+                ),
+            ),
+           'test2' => 'example',
+            */
+        ),
         
     ),
 

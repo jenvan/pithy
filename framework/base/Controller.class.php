@@ -70,7 +70,7 @@ class Controller extends PithyBase {
         }
         
         // 视图类其他方法
-        if (is_object($this->view) && method_exists($this->view, $method) && in_array($method, array("fetch", "render", "redirect", "seo", "tag", "publish", "register"))){
+        if (is_object($this->view) && method_exists($this->view, $method) && in_array($method, array("fetch", "render", "redirect", "block", "widget", "seo", "tag", "publish", "register"))){
             return call_user_func_array(array($this->view, $method), $params);
         }
         
@@ -231,19 +231,20 @@ class Controller extends PithyBase {
         
         // 规则(判断 action 的参数是否符合条件)
         $rules = $this->rules();
-        if ($enable && !empty($rules) && is_array($rules) && !empty($rules[$action])){
+        if ($enable && !empty($rules) && !empty($rules[$action])){
             
             // 判断请求方法
             $rule = $rules[$action];
+            is_string($rule) && $rule = $rules[$rule];
             if (isset($rule["method"]) && !in_array(strtolower($_SERVER["REQUEST_METHOD"]), explode(",", $rule["method"]))){
-                return $this->exception("当前请求的方法不在允许列表中[ ".$rule["method"]." ]，程序终止！");        
+                return $this->exception("当前请求的方法不在允许列表中[ ".$rule["method"]." ]，程序终止！");
             }
             
             // 判断必需参数是否存在
             if (!empty($rule["require"])){
                 $items = array_filter(explode("|", $rule["require"]));
-                foreach($items as $item){
-                    $keys1 = array_filter(explode(",", $item));        
+                foreach ($items as $item) {
+                    $keys1 = array_filter(explode(",", $item));
                     $keys2 = is_array($params) ? array_keys($params) : array();
                     $arr = array_diff($keys1, $keys2);
                     if (!empty($arr))
@@ -251,30 +252,35 @@ class Controller extends PithyBase {
                 }
             }
             
-            // 判断参数是否合法            
+            // 判断参数是否合法
             $fields = !empty($params) && isset($rule["fields"]) && is_array($rule["fields"]) ? $rule["fields"] : array();
-            foreach( $fields as $field => $option){    
-                if (!isset($params[$field]))
-                    continue;                 
- 
+            foreach ($fields as $field => $option) {
+                if (!isset($params[$field])) {
+                    continue;
+                }
+
                 $func = create_function('$var', 'return true;');
-                if ($option["type"] == "callback"){
-                    $func = $option["rule"];
+                if (isset($option["callback"]) || $option["type"] == "callback"){
+                    $func = isset($option["callback"]) ? $option["callback"] : $option["rule"];
                 }
-                if ($option["type"] == "function"){
-                    $func = create_function('$var', $option["rule"]);
-                }                 
-                if ($option["type"] == "regex"){
-                    $func = create_function('$var', 'return preg_match("'.$option["rule"].'", $var);'); 
+                if (isset($option["function"]) || $option["type"] == "function"){
+                    $v = isset($option["function"]) ? $option["function"] : $option["rule"];
+                    $func = create_function('$var', $v);
                 }
-                if ($option["type"] == "confirm"){
-                    $v = isset( $params[$option["rule"]]) ? $params[$option["rule"]] : "";
-                    $func = create_function('$var', 'return $var == "'.$v.'";');    
-                }                 
-                if (( $rtn = call_user_func($func, $params[$field])) == false){
-                    return $this->exception($option["info"]);   
-                }                       
-            }     
+                if (isset($option["regex"]) || $option["type"] == "regex"){
+                    $v = isset($option["regex"]) ? $option["regex"] : $option["rule"];
+                    $func = create_function('$var', 'return preg_match("'.$v.'", $var);'); 
+                }
+                if (isset($option["confirm"]) || $option["type"] == "confirm"){
+                    $k = isset($option["confirm"]) ? $option["confirm"] : $option["rule"];
+                    $v = isset($params[$k]) ? $params[$k] : "";
+                    $func = create_function('$var', 'return $var == "'.$v.'";');
+                }
+                if (($rtn = call_user_func($func, $params[$field])) == false){
+                    $err = isset($option["info"]) ? $option["info"] : "参数有误";
+                    return $this->exception($err);
+                }
+            }
         
         }
 
@@ -293,16 +299,16 @@ class Controller extends PithyBase {
         
         // 执行自定义动作
         $actions = $this->actions();
-        if (!empty($actions) && is_array($actions) && isset($actions[$action])){      
+        if (!empty($actions) && is_array($actions) && isset($actions[$action])){
 
-            $_params = $actions[$action];        
+            $_params = $actions[$action];
             if (!is_array($_params)){ 
                 $route = $_params;
             }
             else{
                 $route = $_params["route"];
                 unset( $_params["route"]);
-                $params = Pithy::merge($_params, $params);  
+                $params = Pithy::merge($_params, $params);
             }
 
             return $this->call($route, $params);
@@ -350,29 +356,14 @@ class Controller extends PithyBase {
      */
     public function actions() {
         return Pithy::config("Controller.Actions");
-
-        return array(
-          "test" => "/help/test",
-          "demo" => array(
-            "route" => "/help/test",
-            "arg1" => 1,
-            "arg2" => array("a","b","c"),
-         ),
-       );
     }
 
     /**
      * 定义动作过滤集合
      * 用于过滤动作是否被允许 
      */
-    public function filters() {        
+    public function filters() {
         return Pithy::config("Controller.Filters");
-
-        return array(
-          "filterA",
-          "filterB + index",
-          "filterC - test,temp",
-       );
     }
 
     /**
@@ -381,38 +372,6 @@ class Controller extends PithyBase {
      */
     public function rules() {
         return Pithy::config("Controller.Rules");
-        
-        return array(
-        
-            'example' => array(
-                'method' => 'get,post',
-                'require' => 'username,password,pithy_token|username,pass,code',
-                'fields' => array(
-                    'username' => array(   
-                        'type' => 'regex',
-                        'rule' => '/[a-z0-9_]{4,10}/ig',
-                        'info' => '用户名不符合规则',
-                   ),
-                    'password' => array(       
-                        'type' => 'function',
-                        'rule' => 'return strlen($var) >= 6 && strlen($var) <= 20;',
-                        'info' => '密码不符合规则',
-                   ),
-                    'pass' => array( 
-                        'type' => 'confirm',
-                        'rule' => 'password',
-                        'info' => '重复输入密码不一致',
-                   ),
-                    'code' => array(                     
-                        'type' => 'callback',
-                        'rule' => array($this, 'check'),
-                        'info' => '验证码错误',
-                   ),                    
-                    
-               ),
-           ),
-        
-       ); 
     }
 
 }
