@@ -258,24 +258,28 @@ class Controller extends PithyBase {
                 if (!isset($params[$field])) {
                     continue;
                 }
-
-                $func = create_function('$var', 'return true;');
+                
+                !isset($option["type"]) && $option["type"] = "";
                 if (isset($option["callback"]) || $option["type"] == "callback"){
                     $func = isset($option["callback"]) ? $option["callback"] : $option["rule"];
                 }
-                if (isset($option["function"]) || $option["type"] == "function"){
+                elseif (isset($option["function"]) || $option["type"] == "function"){
                     $v = isset($option["function"]) ? $option["function"] : $option["rule"];
                     $func = create_function('$var', $v);
                 }
-                if (isset($option["regex"]) || $option["type"] == "regex"){
+                elseif (isset($option["regex"]) || $option["type"] == "regex"){
                     $v = isset($option["regex"]) ? $option["regex"] : $option["rule"];
                     $func = create_function('$var', 'return preg_match("'.$v.'", $var);'); 
                 }
-                if (isset($option["confirm"]) || $option["type"] == "confirm"){
+                elseif (isset($option["confirm"]) || $option["type"] == "confirm"){
                     $k = isset($option["confirm"]) ? $option["confirm"] : $option["rule"];
                     $v = isset($params[$k]) ? $params[$k] : "";
                     $func = create_function('$var', 'return $var == "'.$v.'";');
                 }
+                else {
+                    $func = create_function('$var', 'return true;');
+                }
+                
                 if (($rtn = call_user_func($func, $params[$field])) == false){
                     $err = isset($option["info"]) ? $option["info"] : "参数有误";
                     return $this->exception($err);
