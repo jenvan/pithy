@@ -29,14 +29,11 @@ class View extends PithyBase {
     // 视图数据
     public $data = array();
 
-    // 顶级布局文件路径、布局文件内容、需替换的内容块
-    private $_layoutTop = "", $_layoutContent = array(), $_blocks = array();
-    
-    // SEO 信息
-    private $_seo = array();
+    // 内容块
+    private $_blocks = array();
 
     // TAG 信息
-    private $_tag = array();
+    private $_tags = array();
 
     // 资源文件路径
     private $_assets = array();
@@ -54,6 +51,9 @@ class View extends PithyBase {
     */
     public function initialize($controller) {
         $this->controller = $controller;
+    }
+    public function getRouter() {
+        return $this->controller->router;
     }
     public function getGroup(){
         return $this->controller->group;
@@ -196,28 +196,26 @@ class View extends PithyBase {
     +----------------------------------------------------------
     */
     public function render($content = "", $headers = array()) {
-        
-        if (is_array($content)){
-            $content = isset($content[0]) ? call_user_func_array(array($this, "fetch"), $content) : call_user_func(array($this, "fetch"), $content);
-        }
-
-        empty($this->_seo) && $this->_seo = array(Pithy::config("App.Name"));
-        empty($this->_tag) && $this->tag("APPNAME", Pithy::config("App.Name"));
-
-        // 获取布局路径
-        $layout = $this->layout;
-        
-        // 加载布局
-        $this->extend($layout);
 
         // 获取布局内容
-        $html = $this->_layoutContent[$this->_layoutTop];
-
+        $html = $this->extend($this->layout, false);
         // 替换布局内容
         $html = $this->blockReplace($html);
-        $html = str_ireplace("<!--{ ".Pithy::config("View.Tag.Content")." }-->", $content, $html);
-        $html = str_ireplace(array("<!--{ TITLE }-->", "<!--{ KEYWORD }-->", "<!--{ DESCRIPTION }-->"), array_values($this->_seo), $html);
-        $html = str_ireplace(array_keys($this->_tag), array_values($this->_tag), $html);
+
+        // 获取模板内容
+        is_array($content) && $content = isset($content[0]) ? call_user_func_array(array($this, "fetch"), $content) : call_user_func(array($this, "fetch"), $content);
+        // 替换模板内容
+        $content = $this->blockReplace($content);
+
+        // 设定默认标签内容（防止被覆盖）
+        $this->tag(Pithy::config("View.Tag.Content"), $content);
+        foreach (array("appname", "sitename", "title", "keyword", "description") as $val) {
+            empty($this->_tags[strtoupper($val)]) && $this->tag($val, Pithy::config("App.Name"));
+        }
+        // 替换标签内容
+        foreach ($this->_tags as $key => $val) {
+            $html = str_ireplace("<!--{ {$key} }-->", $val, $html);
+        }
         !PITHY_DEBUG && $html = preg_replace("/([\s]*<\!\-\-[^>]*\-\->[\s]*)/im", "", $html);
 
 
@@ -268,8 +266,8 @@ class View extends PithyBase {
         $assets_module = isset($this->assets["module"]) ? $this->assets["module"] : $assets_group;
         $pattern = array(
             "|([=\(\s]+)(['\"]+)(//assets)|is",
-            "|([=\(\s]+)(['\"]+)(/assets)|is",
-            "|([=\(\s]+)(['\"]+)(\./assets)|is",
+            "|([=\(\s]+)(['\"]+)(/@assets)|is",
+            "|([=\(\s]+)(['\"]+)(/\.assets)|is",
         );
         $replace = array(
             "\\1\\2".$assets_app,
@@ -400,34 +398,46 @@ class View extends PithyBase {
     +----------------------------------------------------------
     * @access public
     +----------------------------------------------------------
-    * @param string $layout 布局 
+    * @param string $layout 布局
+    * @param boolean $output 是否输出
     +----------------------------------------------------------
-    * @return void
+    * @return string 布局内容
     +----------------------------------------------------------
-    */     
-    public function extend($layout) {
-        
-        $this->_layoutTop = $layout;
-        
+    */
+    public function extend($layout, $output = true) {
         $filepath = $this->getPath($layout);
-        
-        if (empty($filepath))
+        if (empty($filepath)) {
             throw new Exception("布局文件不存在！");
+        }
         
         ob_start();
         extract($this->data, EXTR_SKIP);
         require($filepath);
-        $this->_layoutContent[$layout] = ob_get_clean();
+        $html = ob_get_clean();
+        $output && print($html);
+        return $html;
     }
-    
-    
+
+
+    /**
+    +----------------------------------------------------------
+    * 代码块
+    +----------------------------------------------------------
+    * @access public
+    +----------------------------------------------------------
+    * @param string $name 块名称
+    * @param string $content 块内容
+    +----------------------------------------------------------
+    * @return void
+    +----------------------------------------------------------
+    */
     public function block($name, $content = ""){
         $name = strtoupper($name);
         $this->_blocks = array($name => $content) + $this->_blocks;
     }
     public function blockBegin($name){
         $this->block($name);
-        ob_start();    
+        ob_start();
     }
     public function blockEnd(){
         reset($this->_blocks);
@@ -463,8 +473,25 @@ class View extends PithyBase {
         return $html;
     }
 
-    public function widget($name, $params = array(), $expires = 0){
 
+    /**
+    +----------------------------------------------------------
+    * 小部件
+    +----------------------------------------------------------
+    * @access public
+    +----------------------------------------------------------
+    * @param string $name 小部件名称（以@结尾表示当前分组下的小部件）
+    * @param array $params 小部件参数
+    +----------------------------------------------------------
+    * @return string 部件内容
+    +----------------------------------------------------------
+    */
+    public function widget($name, $params = array(), $expires = 0){
+        substr($name, -1) == "@" && $name .= $this->group;
+        ob_start();
+        call_user_func_array(array(Widget::factory($name, $this), "run"), $params);
+        $html = ob_get_clean();
+        return $html;
     }
     
 
@@ -482,9 +509,9 @@ class View extends PithyBase {
     +----------------------------------------------------------
     */
     public function seo($title, $keyword = "", $description = ""){
-        $this->_seo["title"] = $title;
-        !empty($keyword) && $this->_seo["keyword"] = $keyword;
-        !empty($description) && $this->_seo["description"] = $description;
+        $this->tag("title", $title);
+        !empty($keyword) && $this->tag("keyword", $keyword);
+        !empty($description) && $this->tag("description", $description);
     }
 
     /**
@@ -501,13 +528,10 @@ class View extends PithyBase {
     */
     public function tag($name, $value = ""){
         $arr = is_array($name) ? $name : array($name => $value);
-        $arr = Pithy::merge($this->_tag, $arr);
-        $tmp = array();
         foreach ($arr as $key => $val) {
             if (!is_string($key) || !is_scalar($val)) continue;
-            $tmp["<!--{ ".strtoupper($key)." }-->"] = $val;
+            $this->_tags[strtoupper($key)] = $val;
         }
-        $this->_tag = $tmp;
     }
 
     /**
@@ -552,7 +576,8 @@ class View extends PithyBase {
         $dir = opendir($src); 
         !is_dir($dst) && @mkdir($dst, true);
         while (false !== ($file = readdir($dir))) {
-            if (in_array($file, array(".", ".."))) continue;
+            $ext = strtolower(substr($file, strrpos($file, ".") + 1));
+            if (in_array($file, array(".", "..")) || !in_array($ext, explode(",", "png,jpg,jpeg,css,js,json"))) continue;
             $func = is_dir($src."/".$file) ? array($this, "deepCopy") : "copy";
             call_user_func($func, $src."/".$file, $dst."/".$file);
         }
