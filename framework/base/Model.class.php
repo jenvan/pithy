@@ -122,7 +122,7 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      * @access public
      +----------------------------------------------------------
-     * @param string $name 名称
+     * @param string $name 名称 ( _ 前缀的变量非模型的属性，例如 field 中包含count(*) as _num )
      * @param mixed $value 值
      +----------------------------------------------------------
      * @return void
@@ -133,7 +133,7 @@ class Model extends PithyBase {
         if (parent::__isset($name)) {
             return parent::__set($name, $value);
         }
-        $data = $this->filter(array($name => $value));
+        $data = substr($name, 0, 1) != "_" ? $this->filter(array($name => $value)) : array($name => $value);
         if (!in_array($name, array_keys($data))) {
             throw new Exception("模型属性 {$name} 不存在");
         }
@@ -217,7 +217,7 @@ class Model extends PithyBase {
      +----------------------------------------------------------
      */
     private function fetchTableName() {
-        $tableName = !empty($this->tableName) ? $this->tableName : $this->convert($this->name, false);
+        $tableName = !empty($this->tableName) ? $this->tableName : $this->convert(lcfirst($this->name), false);
         !empty($this->tablePrefix) && $tableName  = $this->tablePrefix . $tableName;
         !empty($this->tableSuffix) && $tableName .= $this->tableSuffix;
         !empty($this->dbName) && $tableName = $this->dbName.".".$tableName;
@@ -354,7 +354,7 @@ class Model extends PithyBase {
         $args = is_array($exp) ? $exp : func_get_args();
         foreach ($args as $arg){
             $arg = trim($arg);
-            if ($arg == "*" || preg_match("/^[a-z][\w]+$/", $arg) || preg_match("/^[a-z][\w]+[\s]?,[\s]?[a-z][\w]+/", preg_replace("/([\s]+as[\s]+[^,]+)/", "", $arg))){
+            if ($arg == "*" || preg_match("/^[a-z][\w]+$/", $arg) || preg_match("/^([a-z][\w|\(|\*|\)]+)(([\s]?,[\s]?[a-z][\w|\(|\*|\)]+)*)$/", preg_replace("/([\s]+as[\s]+[^,]+)/", "", $arg))){
                 $this->query["field"] = $arg;
                 continue;
             }
@@ -620,12 +620,10 @@ class Model extends PithyBase {
      */
     protected function convert($str, $toCamel = true) {
         if ($toCamel) {
-            strstr($str, "_") != "" && $str = strtolower($str);
-            return lcfirst(preg_replace_callback("/_([a-zA-Z])/m", create_function('$m', 'return strtoupper($m[1]);') , $str));
+            preg_match("/[\w]_/i", $str) && $str = lcfirst(preg_replace_callback("/_([a-zA-Z])/m", create_function('$m', 'return strtoupper($m[1]);') , strtolower($str)));
         }
         else {
-            $str = preg_replace("/[A-Z]/", "_\\0", $str);
-            return strtolower(trim($str, "_"));
+            $str = strtolower(preg_replace("/[A-Z]/", "_\\0", $str));
         }
         return $str;
     }
