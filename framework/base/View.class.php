@@ -574,10 +574,10 @@ class View extends PithyBase {
 
     private function deepCopy($src, $dst) {
         $dir = opendir($src); 
-        !is_dir($dst) && @mkdir($dst, true);
+        !is_dir($dst) && @mkdir($dst, 0755, true);
         while (false !== ($file = readdir($dir))) {
             $ext = strtolower(substr($file, strrpos($file, ".") + 1));
-            if (in_array($file, array(".", "..")) || !in_array($ext, explode(",", "png,jpg,jpeg,gif,css,js,json"))) continue;
+            if (in_array($file, array(".", "..")) || !in_array($ext, explode(",", Pithy::config("View.Assets.Type")))) continue;
             $func = is_dir($src."/".$file) ? array($this, "deepCopy") : "copy";
             call_user_func($func, $src."/".$file, $dst."/".$file);
         }

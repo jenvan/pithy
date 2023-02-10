@@ -174,8 +174,9 @@ return array(
         // 资源管理
         'Assets' => array(
             "Publish" => false,
-            "Root" => "/assets/",
-            "Host" => "/assets/",  // 可加上域名做 CDN
+            "Type" => "png,jpg,jpeg,gif,css,js,json", // 可发布的文件类型
+            "Root" => "/assets/",  // 发布到 public 目录下的位置
+            "Host" => "/assets/",  // HTTP 访问路径前缀（可加上域名做 CDN）
         ),
 
         // 简单页面显示配置
