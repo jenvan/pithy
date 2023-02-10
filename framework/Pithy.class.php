@@ -991,7 +991,7 @@ class Pithy{
     static public function cache($key, $value=PITHY_RANDOM){
         
         // 缓存文件路径
-        $folder = PITHY_PATH_RUNTIME.DIRECTORY_SEPARATOR."cache_".substr(md5(PITHY_APPLICATION), 8, 8);
+        $folder = PITHY_PATH_RUNTIME.DIRECTORY_SEPARATOR."cache".DIRECTORY_SEPARATOR.substr(md5(PITHY_APPLICATION), -8);
         $filename = $folder.DIRECTORY_SEPARATOR.$key.".php";  
         
         // 获取缓存（如果 $value 为默认值）
@@ -1005,7 +1005,7 @@ class Pithy{
         }
         
         // 删除缓存 
-        return @unlink($filename);       
+        return @unlink($filename);
     }
 
     /**
