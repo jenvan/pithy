@@ -281,7 +281,7 @@ class Command extends PithyBase {
         }
         else {
             $command = $this->command;
-            $action = $this->action;
+            $action = $commander;
         }
         $args = empty($params) ? "" : "--".urldecode(http_build_query($params, "", " --"));
         $args .= empty($vars) ? "" : "-".urldecode(http_build_query($vars, "", " -"));
