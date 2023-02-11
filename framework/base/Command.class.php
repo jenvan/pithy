@@ -54,10 +54,10 @@ class Command extends PithyBase {
     protected $_module = "";
 
     // 当前执行的 action
-    private $_action = "";
+    protected $_action = "";
 
     // 当前执行的 params
-    private $_params = "";
+    protected $_params = "";
 
     public function getGroup(){
         return $this->_group;
@@ -75,15 +75,15 @@ class Command extends PithyBase {
         return $this->_params;
     }
 
-    public function getCommander(){
+    public function getCommand(){
         return $this->module.(empty($this->group) ? "" : "@".$this->group);
     }
 
 
     
     /**
-     * 初始化   
-     *  
+     * 初始化
+     *
      */
     public function initialize() {
         // 设置 Pithy 的异常处理方法
@@ -93,9 +93,9 @@ class Command extends PithyBase {
         method_exists($this, "_init") && call_user_func(array($this, "_init"));
     }
     
-    /**       
-     * 异常  
-     *      
+    /**
+     * 异常
+     *
      * @param string $msg 异常信息
      * @return mixed
      */
@@ -110,12 +110,12 @@ class Command extends PithyBase {
         return $this->halt($msg);
     } 
 
-    /**         
-     * 实例化指定的命令行    
+    /**
+     * 实例化指定的命令行
      *
      * @param string $name 命令行名称
      * @return command
-     *          
+     *
      */
     static public function factory($name){
 
@@ -157,8 +157,14 @@ class Command extends PithyBase {
             Command::singleton()->exception("命令行 {$class} 类型出错！");
         }
 
-        !empty($group) && $object->_group = $group;
-        $object->_module = strtolower($name);
+        foreach (array("_group" => $group, "_module" => strtolower($name)) as $key => $val) {
+            //$object->$key = $val;
+            $rp = new ReflectionProperty($object, $key);
+            if ($rp->isProtected()) {
+                $rp->setAccessible(true);
+                $rp->setValue($object, $val);
+            }
+        }
         
         return $object;
     }
@@ -263,13 +269,22 @@ class Command extends PithyBase {
     /**
      * 开启新的 command 进程
      * 
-     * @param string $command
-     * @param string $action
+     * @param mixed $commander
      * @param array $params
+     * @param array $vars
      * @return mixed
      */
-    public function fork($command, $action, $params = array()) {
+    public function fork($commander, $params = array(), $vars = array()) {
+        if (is_array($commander)) {
+            $command = $commander[0];
+            $action = $commander[1];
+        }
+        else {
+            $command = $this->command;
+            $action = $this->action;
+        }
         $args = empty($params) ? "" : "--".urldecode(http_build_query($params, "", " --"));
+        $args .= empty($vars) ? "" : "-".urldecode(http_build_query($vars, "", " -"));
         return Pithy::execute("php", PITHY_APPLICATION."pithy.php {$command} {$action} {$args} --ts=".date("YmdHis"));
     }
     
@@ -337,7 +352,7 @@ class Command extends PithyBase {
      * 
      * @param mixed $msg    日志内容
      * @param mixed $false  强制实时记录
-     */    
+     */
     public function log($msg, $force = false){
         empty($this->logName) && $this->logName = get_class($this).($this->logAlone ? "-".$this->_action : "");
         $GLOBALS["pithy_log_file"] = $this->logName;
@@ -356,6 +371,11 @@ class Command extends PithyBase {
         log2file();
         PITHY_DEBUG && sleep(3);
         exit;
+    }
+
+    // 默认的入口 action
+    public function actionIndex(){
+        $this->notice("Run task :", $this->command, "/", $this->action, "-=>", json_encode($this->params), "#");
     }
 
 }
