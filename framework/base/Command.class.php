@@ -108,13 +108,13 @@ class Command extends PithyBase {
             return $this->_error($msg); 
 
         return $this->halt($msg);
-    } 
+    }
 
     /**
      * 实例化指定的命令行
      *
      * @param string $name 命令行名称
-     * @return command
+     * @return object command
      *
      */
     static public function factory($name){
@@ -232,12 +232,9 @@ class Command extends PithyBase {
         }
 
         // 动作不存在
-        if (method_exists($this, "_miss"))  
-            return $this->_miss($action); 
-        
-        return $this->help(substr(get_class($this), 0, strlen("Command")*-1));
+        return $this->_miss($action); 
     }
-        
+
     /**
      * 运行外部控制器的 action
      * 
@@ -250,7 +247,7 @@ class Command extends PithyBase {
         
         if (empty($command)){
             if (!isset($_SERVER["argv"][1]))
-                return $this->help();
+                return $this->exception("缺少命令参数");;
             $command = $_SERVER["argv"][1];
         }
 
@@ -263,7 +260,7 @@ class Command extends PithyBase {
             $args = array_filter(explode(" ", $args));
         
         $arr = $this->parse($args);
-        self::factory($command)->run($action, $arr["params"], $arr["vars"]); 
+        return self::factory($command)->run($action, $arr["params"], $arr["vars"]); 
     }
 
     /**
@@ -283,25 +280,11 @@ class Command extends PithyBase {
             $command = $this->command;
             $action = $commander;
         }
-        $args = empty($params) ? "" : "--".urldecode(http_build_query($params, "", " --"));
-        $args .= empty($vars) ? "" : "-".urldecode(http_build_query($vars, "", " -"));
+        $args = empty($params) ? "" : " --".urldecode(http_build_query($params, "", " --"));
+        $args .= empty($vars) ? "" : " -".urldecode(http_build_query($vars, "", " -"));
         return Pithy::execute("php", PITHY_APPLICATION."pithy.php {$command} {$action} {$args} --ts=".date("YmdHis"));
     }
-    
-    /**
-     * 显示相关帮助信息(未指定命令行则显示所有可用的命令行，指定命令行则显示所有可用的动作)
-     * 
-     * @param mixed $command
-     */
-    final public function help($command = ""){
-        if (empty($command))
-            $msg = "未指定命令！";
-        else
-            $msg = "命令行的动作不存在！";
-        $this->exception($msg);
-    }
-    
-    
+
 
     /** 
      * 屏幕打印信息
@@ -373,7 +356,15 @@ class Command extends PithyBase {
         exit;
     }
 
-    // 默认的入口 action
+
+    /**
+     * 指定的动作不存在
+     */
+    public function _miss(){
+        return $this->exception("命令行的动作不存在！");
+    }
+
+    // 默认的动作入口
     public function actionIndex(){
         $this->notice("Run task :", $this->command, "/", $this->action, "-=>", json_encode($this->params), "#");
     }
