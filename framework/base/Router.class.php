@@ -50,8 +50,8 @@ class Router extends PithyBase {
 
         // 加载分组配置
         if (!empty($arr["group"])) {
-            $config = @include(PITHY_APPLICATION."/@".$arr["group"]."/config.php");
-            $config && Pithy::config(Pithy::merge(Pithy::config(), $config), true);
+            $filepath = PITHY_APPLICATION."/@".$arr["group"]."/config.php";
+            Pithy::exists($filepath) && Pithy::config(Pithy::merge(Pithy::config(), @include($filepath)), true);
         }
 
         return ;
