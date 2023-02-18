@@ -149,7 +149,9 @@ class Controller extends PithyBase {
             Controller::singleton()->exception("模块 {$id} 不存在！");
         }
 
-        list($class, $group) = explode("@", substr($id, strrpos($id, ".") + 1));
+        $arr = explode("@", substr($id, strrpos($id, ".") + 1));
+        $class = trim($arr[0]);
+        $group = isset($arr[1]) ? $arr[1] : "";
         !empty($group) && Pithy::import("~.@".$group.".extend.*");
         $object = Pithy::instance($class);
         if (!is_object($object) || !is_subclass_of($object, "Controller")){
