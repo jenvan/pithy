@@ -1019,7 +1019,7 @@ class Pithy{
      * @param mixed $option
      * @param mixed $init
      */
-    static public function cookie($name, $value=PITHY_RANDOM, $option="", $init=true){
+    static public function cookie($name, $value=PITHY_RANDOM, $option=null, $init=true){
 
         // 默认设置
         $config = array(
@@ -1029,7 +1029,7 @@ class Pithy{
             'domain' => self::config('App.Cookie.Domain'), // cookie 有效域名
         );
         // 参数设置(会覆盖黙认设置)
-        if (!empty($option)) {
+        if (!is_null($option)) {
             if (is_numeric($option))
                 $option = array('expire'=>$option);
             elseif (is_string($option))

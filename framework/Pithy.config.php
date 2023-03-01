@@ -63,7 +63,7 @@ return array(
 
         // Cookie 设置
         "Cookie" => array(
-            "Expire"         => 3600,    // Coodie 有效期
+            "Expire"         => 0,       // Coodie 有效期
             "Domain"         => "",      // Cookie 有效域名
             "Path"           => "/",     // Cookie 路径
             "Prefix"         => "pithy", // Cookie 前缀(避免冲突)
