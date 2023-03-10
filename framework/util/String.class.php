@@ -56,12 +56,12 @@ class String
 
     static public function encrypt($str, $secret = "") {
         empty($secret) && $secret = md5(__FILE__);
-        return base64_encode(openssl_encrypt($str, "aes-256-ecb", $secret, OPENSSL_RAW_DATA));
+        return self::encode(openssl_encrypt($str, "aes-256-ecb", $secret, OPENSSL_RAW_DATA), "base64");
     }
 
     static public function decrypt($str, $secret = "") {
         empty($secret) && $secret = md5(__FILE__);
-        return trim(openssl_decrypt(base64_decode($str), "aes-256-ecb", $secret, OPENSSL_RAW_DATA));
+        return trim(openssl_decrypt(self::decode($str, "base64"), "aes-256-ecb", $secret, OPENSSL_RAW_DATA));
     }
 
     static public function sign(){
