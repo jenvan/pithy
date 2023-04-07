@@ -554,7 +554,7 @@ class Model extends PithyBase {
      * @return int 删除的记录条数
      +----------------------------------------------------------
      */
-    public function delete($key = "") {
+    public function delete($key = null) {
         
         // 如果删除条件为空，则删除当前数据对象所对应的记录
         $pk = $this->fetchTablePK();
