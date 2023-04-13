@@ -61,7 +61,7 @@ class Router extends PithyBase {
     public function parse($url, $params = array()){
 
         // 赋初值
-        $group = "";
+        $group = null;
         $module = "";
         $action = "";
         $params = !is_array($params) ? array() : $params;
@@ -128,7 +128,12 @@ class Router extends PithyBase {
             }
             $alias = Pithy::config("Router.Alias");
             if (is_array($alias) && !empty($module)) {
-                isset($alias[$module]) && $module = $alias[$module];
+                if (isset($alias[$module])) {
+                    if (strpos($alias[$module], "@") == false) 
+                        $module = $alias[$module];
+                    else
+                        list($module, $group) = explode("@", $alias[$module]);
+                }
                 isset($alias[$module."/".$action]) && list($module, $action) = explode("/", $alias[$module."/".$action]);
             }
 
@@ -141,7 +146,8 @@ class Router extends PithyBase {
 
         }
 
-        if (empty($group)) {
+        if (is_null($group)) {
+            $group = "";
             $domain = preg_replace("/:[\d]+$/", "", $_SERVER["HTTP_HOST"]);
             $wildcard = preg_replace("/^[^\.]+\.(.+)$/i", "*.$1", $domain);
             $groups = Pithy::config("Router.Groups");
