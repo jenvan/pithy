@@ -28,10 +28,13 @@ class HTTP{
 
         $options = !is_array($options) || empty($options) ? $config : $options + $config;
         
-        if (!empty($fields)) { 
-            if (!empty($options[CURLOPT_POST]) || !empty($options[CURLOPT_CUSTOMREQUEST])) {
-
-                // fields 字段：文件上传用 multipart/form-data（数组），否则用 www-form-urlencoded（字符串）
+        if (!empty($fields)) {
+            
+            if (empty($options[CURLOPT_POST]) && (empty($options[CURLOPT_CUSTOMREQUEST]) || $options[CURLOPT_CUSTOMREQUEST] == "GET")) {
+                $url .= (strstr($url, "?") == "" ? "?" : "&") . (is_array($fields) ? http_build_query($fields) : $fields);
+            }
+            else {
+                
                 if (is_array($fields)) {
 
                     $form = false;
@@ -58,15 +61,15 @@ class HTTP{
                         }
                     }
 
+                    // fields 字段：非表单方式提交时则将数组编码成相应格式的字符串，否则用直接用数组
+                    // 表单方式提交：文件上传 | multipart/form-data
+                    // 编码方式提交：application/x-www-form-urlencoded | application/json
                     if (!$form) {
                         $fields = $json ? json_encode($fields, JSON_UNESCAPED_UNICODE) : http_build_query($fields);
                     }
                 }
                 
                 $options[CURLOPT_POSTFIELDS] = $fields;
-            } 
-            else {
-                $url .= (strstr($url, "?") == "" ? "?" : "&") . (is_array($fields) ? http_build_query($fields) : $fields);
             }
         }
         
