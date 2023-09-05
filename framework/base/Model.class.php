@@ -238,7 +238,7 @@ class Model extends PithyBase {
         
         $name = $this->name.".Field";
         $this->field = Pithy::cache($name);
-        if (empty($this->field)) {
+        if (PITHY_DEBUG || empty($this->field)) {
             $this->field = array();
             $arr = $this->db->getFields($this->fetchTableName());
             foreach ($arr as $key => $val) {
@@ -532,7 +532,7 @@ class Model extends PithyBase {
 
         // 保存
         $mode = is_bool($force) ? ($force ? "replace" : "ignore") : "";
-        $rtn = $this->db->$job($data, $this->query, $mode);
+        $rtn = $this->db->$job($data, $this->query, $mode); 
         $this->query = array();
 
         // 保存后事件
@@ -540,7 +540,7 @@ class Model extends PithyBase {
         $this->load($data);
         Pithy::trigger("model.write.after.".$job, array($this, &$this->data));
 
-        return !empty($rtn);
+        return !empty($rtn) ? $this->data : null;
     }
 
     /**
